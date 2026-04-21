@@ -40,6 +40,7 @@
   },
   "peerDependencies": {
     "@jeswr/solid-reactive-fetch": "workspace:*",
+    "@uvdsl/solid-oidc-client-browser": "^0.2.0",
     "react": ">=18"
   },
   "keywords": [
