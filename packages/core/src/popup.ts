@@ -9,6 +9,7 @@ export interface OpenLoginPopupOptions {
 }
 
 let pending: Promise<void> | null = null;
+let activeAbort: (() => void) | null = null;
 
 const DEFAULT_FEATURES = 'popup=yes,width=520,height=640';
 const DEFAULT_POLL_INTERVAL_MS = 500;
@@ -70,12 +71,29 @@ export function openLoginPopup(options: OpenLoginPopupOptions): Promise<void> {
         settleReject(new PopupClosedError());
       }
     }, pollIntervalMs);
+
+    activeAbort = () => settleReject(new PopupClosedError());
   });
 
   pending = promise;
   promise.finally(() => {
-    if (pending === promise) pending = null;
+    if (pending === promise) {
+      pending = null;
+      activeAbort = null;
+    }
   });
 
   return promise;
+}
+
+export function __resetPopupStateForTests(): void {
+  if (activeAbort) {
+    try {
+      activeAbort();
+    } catch {
+      /* swallow — test reset should never throw */
+    }
+  }
+  activeAbort = null;
+  pending = null;
 }
