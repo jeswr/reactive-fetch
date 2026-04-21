@@ -58,8 +58,20 @@
     "popup"
   ],
   "devDependencies": {
+    "@rdfjs/types": "^2.0.1",
+    "@types/n3": "^1.26.1",
+    "@types/rdfjs__dataset": "^2.0.7",
+    "@types/readable-stream": "^4.0.23",
     "@uvdsl/solid-oidc-client-browser": "^0.2.2",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.0.2"
+  },
+  "dependencies": {
+    "@rdfjs/dataset": "^2.0.2",
+    "@rdfjs/wrapper": "^0.34.0",
+    "@solid/object": "^0.5.0",
+    "n3": "^2.0.3",
+    "rdf-parse": "^5.0.0",
+    "readable-stream": "^4.7.0"
   }
 }
