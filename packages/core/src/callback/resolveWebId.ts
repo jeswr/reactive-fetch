@@ -1,11 +1,10 @@
-// Turtle is the dominant WebID profile serialization; N3.js parses it directly
-// into quads synchronously, which is noticeably faster than routing through
-// rdf-parse's Comunica-backed content-type dispatch. Everything else (JSON-LD,
-// RDF/XML, N-Triples, N-Quads, TriG, etc.) goes through rdf-parse.
+// WebID profiles are either Turtle (the dominant case — parsed synchronously by
+// N3.js) or JSON-LD (parsed by jsonld-streaming-parser). Anything else is
+// rejected: supporting RDF/XML, N-Quads, etc. would pull in Comunica's full
+// content-type dispatch for negligible real-world benefit.
 import { Parser as N3Parser, DataFactory as N3DataFactory } from 'n3';
 import datasetFactory from '@rdfjs/dataset';
-import { rdfParser } from 'rdf-parse';
-import { Readable } from 'readable-stream';
+import { JsonLdParser } from 'jsonld-streaming-parser';
 import contentType from 'content-type';
 import type { DatasetCore, Quad } from '@rdfjs/types';
 import { NamedNodeAs, NamedNodeFrom } from '@rdfjs/wrapper';
@@ -20,6 +19,8 @@ const TURTLE_FAMILY = new Set([
   'application/n-quads',
   'application/trig',
 ]);
+
+const JSON_LD_FAMILY = new Set(['application/ld+json', 'application/json']);
 
 class WebIdAgent extends Agent {
   get oidcIssuers(): Set<string> {
@@ -61,10 +62,18 @@ export async function resolveOidcIssuers(webIdUrl: string): Promise<string[]> {
 
   let quads: Quad[];
   try {
-    quads = TURTLE_FAMILY.has(mediaType)
-      ? parseTurtle(body, mediaType, webIdUrl)
-      : await parseWithRdfParse(body, mediaType, webIdUrl);
+    if (TURTLE_FAMILY.has(mediaType)) {
+      quads = parseTurtle(body, mediaType, webIdUrl);
+    } else if (JSON_LD_FAMILY.has(mediaType)) {
+      quads = await parseJsonLd(body, webIdUrl);
+    } else {
+      throw new WebIdProfileError(
+        webIdUrl,
+        `Unsupported WebID serialization: ${mediaType}. Supported: Turtle (text/turtle), JSON-LD (application/ld+json).`,
+      );
+    }
   } catch (cause) {
+    if (cause instanceof WebIdProfileError) throw cause;
     throw new WebIdProfileError(
       webIdUrl,
       `Failed to parse WebID profile (${mediaType}) at ${webIdUrl}.`,
@@ -115,21 +124,14 @@ function parseTurtle(body: string, format: string, baseIRI: string): Quad[] {
   return parser.parse(body);
 }
 
-async function parseWithRdfParse(
-  body: string,
-  mediaType: string,
-  baseIRI: string,
-): Promise<Quad[]> {
-  const input = Readable.from([body]);
-  const quadStream = rdfParser.parse(input as unknown as NodeJS.ReadableStream, {
-    contentType: mediaType,
-    baseIRI,
-  });
-
+function parseJsonLd(body: string, baseIRI: string): Promise<Quad[]> {
+  const parser = new JsonLdParser({ baseIRI, dataFactory: N3DataFactory });
   return new Promise<Quad[]>((resolve, reject) => {
     const collected: Quad[] = [];
-    quadStream.on('data', (quad: Quad) => collected.push(quad));
-    quadStream.on('error', reject);
-    quadStream.on('end', () => resolve(collected));
+    parser.on('data', (quad: Quad) => collected.push(quad));
+    parser.on('error', reject);
+    parser.on('end', () => resolve(collected));
+    parser.write(body);
+    parser.end();
   });
 }
