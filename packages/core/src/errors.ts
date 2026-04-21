@@ -9,25 +9,32 @@ export type ReactiveFetchErrorCode =
 export abstract class ReactiveFetchError extends Error {
   abstract readonly code: ReactiveFetchErrorCode;
 
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message, options as ErrorOptions | undefined);
-    this.name = new.target.name;
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
   }
 }
 
 export class PopupBlockedError extends ReactiveFetchError {
   readonly code = 'popup_blocked';
 
-  constructor(message = 'Popup was blocked by the browser. Ensure login() is called from a user gesture.') {
-    super(message);
+  constructor(
+    message = 'Popup was blocked by the browser. Ensure login() is called from a user gesture.',
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'PopupBlockedError';
   }
 }
 
 export class PopupClosedError extends ReactiveFetchError {
   readonly code = 'popup_closed';
 
-  constructor(message = 'Login popup was closed before authentication completed.') {
-    super(message);
+  constructor(
+    message = 'Login popup was closed before authentication completed.',
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'PopupClosedError';
   }
 }
 
@@ -35,8 +42,9 @@ export class WebIdProfileError extends ReactiveFetchError {
   readonly code = 'webid_profile';
   readonly webId: string;
 
-  constructor(webId: string, message?: string, options?: { cause?: unknown }) {
+  constructor(webId: string, message?: string, options?: ErrorOptions) {
     super(message ?? `Failed to fetch or parse WebID Profile Document at ${webId}.`, options);
+    this.name = 'WebIdProfileError';
     this.webId = webId;
   }
 }
@@ -45,8 +53,9 @@ export class NoOidcIssuerError extends ReactiveFetchError {
   readonly code = 'no_oidc_issuer';
   readonly webId: string;
 
-  constructor(webId: string, message?: string) {
-    super(message ?? `WebID Profile Document at ${webId} has no solid:oidcIssuer triple.`);
+  constructor(webId: string, message?: string, options?: ErrorOptions) {
+    super(message ?? `WebID Profile Document at ${webId} has no solid:oidcIssuer triple.`, options);
+    this.name = 'NoOidcIssuerError';
     this.webId = webId;
   }
 }
@@ -54,8 +63,9 @@ export class NoOidcIssuerError extends ReactiveFetchError {
 export class LoginFailedError extends ReactiveFetchError {
   readonly code = 'login_failed';
 
-  constructor(message = 'Solid-OIDC login flow failed.', options?: { cause?: unknown }) {
+  constructor(message = 'Solid-OIDC login flow failed.', options?: ErrorOptions) {
     super(message, options);
+    this.name = 'LoginFailedError';
   }
 }
 
@@ -64,11 +74,18 @@ export class OriginMismatchError extends ReactiveFetchError {
   readonly expectedOrigin: string;
   readonly actualOrigin: string;
 
-  constructor(expectedOrigin: string, actualOrigin: string, message?: string) {
+  constructor(
+    expectedOrigin: string,
+    actualOrigin: string,
+    message?: string,
+    options?: ErrorOptions,
+  ) {
     super(
       message ??
         `postMessage origin mismatch: expected ${expectedOrigin}, got ${actualOrigin}.`,
+      options,
     );
+    this.name = 'OriginMismatchError';
     this.expectedOrigin = expectedOrigin;
     this.actualOrigin = actualOrigin;
   }
