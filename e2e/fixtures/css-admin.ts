@@ -21,8 +21,8 @@ interface LoginResponse {
 
 interface AccountResponse {
   controls: {
-    password: { login: string };
-    account: { clientCredentials: string };
+    password?: { login?: string; create?: string };
+    account?: { clientCredentials?: string };
   };
 }
 
@@ -57,17 +57,34 @@ function webIdForCreds(creds: CssCredentials): string {
 export async function getAuthenticatedFetch(creds: CssCredentials): Promise<CssFetcher> {
   const webId = webIdForCreds(creds);
 
-  const accountRes = await fetch(`${CSS_URL}/.account/`);
-  const account = await jsonOk<AccountResponse>(accountRes, 'account discovery');
+  // 1. Unauthenticated `.account/` reveals the login control.
+  const unauthRes = await fetch(`${CSS_URL}/.account/`);
+  const unauth = await jsonOk<AccountResponse>(unauthRes, 'account discovery (unauth)');
+  const loginUrl = unauth.controls.password?.login;
+  if (!loginUrl) {
+    throw new Error(`CSS admin: password.login control missing in ${JSON.stringify(unauth.controls)}`);
+  }
 
-  const loginRes = await fetch(account.controls.password.login, {
+  // 2. POST creds → authorization token.
+  const loginRes = await fetch(loginUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email: creds.email, password: creds.password }),
   });
   const login = await jsonOk<LoginResponse>(loginRes, 'password login');
 
-  const ccRes = await fetch(account.controls.account.clientCredentials, {
+  // 3. Authenticated `.account/` reveals the clientCredentials control.
+  const authRes = await fetch(`${CSS_URL}/.account/`, {
+    headers: { authorization: `CSS-Account-Token ${login.authorization}` },
+  });
+  const authed = await jsonOk<AccountResponse>(authRes, 'account discovery (auth)');
+  const ccUrl = authed.controls.account?.clientCredentials;
+  if (!ccUrl) {
+    throw new Error(`CSS admin: account.clientCredentials control missing in ${JSON.stringify(authed.controls)}`);
+  }
+
+  // 4. Create a client-credentials entry bound to the user's WebID.
+  const ccRes = await fetch(ccUrl, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -126,15 +143,14 @@ export async function putAcl(
   await putResource(fetcher, aclUrl, aclTurtle, 'text/turtle');
 }
 
-export function privateContainerAcl(containerUrl: string, webId: string): string {
+export function ownerOnlyAcl(resourceUrl: string, webId: string): string {
   return [
     '@prefix acl: <http://www.w3.org/ns/auth/acl#>.',
     '',
     '<#owner>',
     '  a acl:Authorization;',
     `  acl:agent <${webId}>;`,
-    `  acl:accessTo <${containerUrl}>;`,
-    `  acl:default <${containerUrl}>;`,
+    `  acl:accessTo <${resourceUrl}>;`,
     '  acl:mode acl:Read, acl:Write, acl:Control.',
     '',
   ].join('\n');

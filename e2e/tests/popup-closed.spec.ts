@@ -21,10 +21,13 @@ test.describe('popup-closed cancellation surfaces an error', () => {
     await popup.locator(SEL.callbackWebIdInput).waitFor({ state: 'visible' });
     await popup.close();
 
-    // The app's withButtons() wrapper prepends "Error: " to the error message.
+    // The app sets data-status="error" on the status line when the error
+    // branch of withButtons runs. Assert on the stable attribute + the
+    // PopupClosedError message contents.
     const status = page.locator(SEL.status);
-    await expect(status).toContainText(/error/i, { timeout: 15_000 });
+    await expect(status).toHaveAttribute('data-status', 'error', { timeout: 15_000 });
     await expect(status).toContainText(/popup/i);
+    await expect(status).toContainText(/closed/i);
 
     // The WebID-display element stays empty — we never resolved past the
     // cancellation, so no WebID should be rendered.

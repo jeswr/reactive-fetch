@@ -9,11 +9,9 @@ export const ALICE = {
   password: 'password123',
   webId: `${CSS_URL}/alice/profile/card#me`,
   podRoot: `${CSS_URL}/alice/`,
-  // The vanilla-ts example fetches `<podRoot>private/` as the private resource
-  // demo. We seed a non-empty .meta/ACL on the container + a child document so
-  // the GET returns something readable for authenticated alice only.
-  privateContainer: `${CSS_URL}/alice/private/`,
-  privateDocument: `${CSS_URL}/alice/private/note.txt`,
+  // The vanilla-ts example fetches `<podRoot>private.txt`. We seed the file
+  // and restrict it to alice via an ACL so unauthenticated reads 401.
+  privateResource: `${CSS_URL}/alice/private.txt`,
   privateBody: 'hello alice',
 } as const;
 
@@ -25,22 +23,22 @@ export const BOB = {
 } as const;
 
 export const MULTI_ISSUER = {
-  // Hosted under alice's pod so alice owns it; the callback only needs to
-  // fetch it publicly to discover the oidcIssuer triples, so we grant public
-  // read on the profile resource itself.
+  // Hosted under alice's pod so alice owns it; the callback fetches the
+  // WebID profile unauthenticated to discover oidcIssuer triples, so we
+  // grant public read on the resource.
   webId: `${CSS_URL}/alice/multi-profile#me`,
   profileUrl: `${CSS_URL}/alice/multi-profile`,
   issuers: [CSS_URL, 'https://login.example.org'],
 } as const;
 
-// Selectors correspond to the ids used by examples/vanilla-ts/index.html —
-// kept here so specs have a single source of truth and any id rename is a
-// one-line change.
+// Selectors for examples/vanilla-ts. Single source of truth — any id rename
+// is a one-line change here.
 export const SEL = {
   showWebIdBtn: '#show-webid',
   fetchPrivateBtn: '#fetch-private',
   status: '#status',
   output: '#output',
+  webIdDisplay: '#webid-display',
   callbackWebIdInput: '#reactive-fetch-webid',
   callbackPromptSubmit: '[data-reactive-fetch="prompt"] button[type="submit"]',
   issuerPicker: '[data-reactive-fetch="issuer-picker"]',

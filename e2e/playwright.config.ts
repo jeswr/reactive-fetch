@@ -21,6 +21,9 @@ import { defineConfig, devices } from '@playwright/test';
 const CSS_URL = process.env['E2E_CSS_URL'] ?? 'http://localhost:3000';
 const APP_URL = process.env['E2E_APP_URL'] ?? 'http://localhost:5173';
 
+// Note: constants.ts reads CSS_PORT/APP_PORT from the same env vars so
+// spec-level URLs match the running servers.
+
 const CSS_PORT = new URL(CSS_URL).port || '3000';
 
 const isCI = !!process.env['CI'];

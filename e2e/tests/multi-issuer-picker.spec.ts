@@ -42,7 +42,11 @@ test.describe('multi-issuer picker UI', () => {
 
     await popup.waitForEvent('close', { timeout: 20_000 }).catch(() => undefined);
 
-    await expect(page.locator(SEL.webIdDisplay)).toHaveText(MULTI_ISSUER.webId, {
+    // CSS returns the *authenticated* user's WebID (alice's primary), not
+    // the multi-profile WebID we supplied for issuer discovery. The assertion
+    // here is that login drove to completion after the picker — the picker
+    // visibility + radio count already covers the picker UI itself.
+    await expect(page.locator(SEL.webIdDisplay)).toHaveText(ALICE.webId, {
       timeout: 20_000,
     });
   });

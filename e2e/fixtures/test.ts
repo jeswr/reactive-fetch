@@ -1,7 +1,7 @@
 // Central Playwright test fixture file. Extends the base `test` with:
 //
 //  - `aliceFetcher`: an authenticated fetch against CSS as alice
-//  - `seededPrivateResource`: ensures alice's private/ container + ACL exist
+//  - `seededPrivateResource`: alice's private.txt with owner-only ACL
 //  - `seededMultiIssuerProfile`: a WebID with two solid:oidcIssuer triples
 //  - `loggedInPage`: a page with alice already logged in (via the real popup)
 //
@@ -11,7 +11,7 @@ import { test as base, expect, type Page } from '@playwright/test';
 import {
   getAuthenticatedFetch,
   multiIssuerProfile,
-  privateContainerAcl,
+  ownerOnlyAcl,
   publicReadAcl,
   putAcl,
   putResource,
@@ -37,11 +37,8 @@ export const test = base.extend<Fixtures>({
   },
 
   seededPrivateResource: async ({ aliceFetcher }, use) => {
-    // Put a child document so CSS auto-creates the parent container, then
-    // restrict the container via its ACL. The vanilla-ts app GETs the
-    // container URL, so the ACL has to live on the container.
-    await putResource(aliceFetcher, ALICE.privateDocument, ALICE.privateBody, 'text/plain');
-    await putAcl(aliceFetcher, ALICE.privateContainer, privateContainerAcl(ALICE.privateContainer, ALICE.webId));
+    await putResource(aliceFetcher, ALICE.privateResource, ALICE.privateBody, 'text/plain');
+    await putAcl(aliceFetcher, ALICE.privateResource, ownerOnlyAcl(ALICE.privateResource, ALICE.webId));
     await use();
   },
 
@@ -52,7 +49,7 @@ export const test = base.extend<Fixtures>({
       multiIssuerProfile(MULTI_ISSUER.webId, [...MULTI_ISSUER.issuers]),
       'text/turtle',
     );
-    // Public-readable ACL so the callback can fetch the WebID profile
+    // Public-readable so the callback can fetch the WebID profile
     // unauthenticated to discover the oidcIssuer triples.
     await putAcl(
       aliceFetcher,
