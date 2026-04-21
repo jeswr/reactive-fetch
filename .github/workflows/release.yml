@@ -50,12 +50,16 @@ jobs:
       - name: Build all packages
         run: pnpm -r build
 
+      - name: Record pre-release SHA
+        id: pre
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Release to npm
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
-        run: pnpm exec multi-semantic-release --ignore-private-packages
+        run: pnpm exec multi-semantic-release --ignore-private-packages --deps.bump=satisfy --deps.prefix='^'
 
       - name: Setup Node.js for GitHub Packages
         uses: actions/setup-node@v4
@@ -67,11 +71,32 @@ jobs:
       - name: Publish to GitHub Packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_SHA: ${{ steps.pre.outputs.sha }}
+        # Fetch the freshly-written semantic-release commits that @semantic-release/git
+        # pushed to origin/main during "Release to npm". `pull --ff-only` is safe because
+        # the local branch was at PRE_SHA and the remote has only advanced from there.
         run: |
-          for pkg in packages/core packages/react; do
-            # Skip if the package hasn't been version-bumped (i.e. multi-semantic-release
-            # didn't find a reason to release it on this run).
-            if git diff-tree --no-commit-id --name-only -r HEAD | grep -q "^${pkg}/package.json$"; then
-              (cd "${pkg}" && npm publish --access public --no-provenance) || true
+          set -euo pipefail
+          git fetch origin main
+          git pull --ff-only origin main
+          # Collect every packages/*/package.json touched in the release range.
+          # This is the authoritative signal that multi-semantic-release bumped a package.
+          changed=$(git diff --name-only "${PRE_SHA}..HEAD" -- 'packages/*/package.json' | xargs -n1 dirname | sort -u)
+          if [ -z "${changed}" ]; then
+            echo "No packages were released on this run — skipping GitHub Packages mirror."
+            exit 0
+          fi
+          for pkg in ${changed}; do
+            echo "::group::Mirror ${pkg} to GitHub Packages"
+            # E409 is the npm response for "this version already exists" — benign on retry
+            # but every other failure (auth, network, manifest validation) should fail the job.
+            if ! (cd "${pkg}" && npm publish --access public --no-provenance 2> >(tee /tmp/npm-stderr >&2)); then
+              if grep -qE 'E(PUBLISHCONFLICT|409)|cannot publish over' /tmp/npm-stderr; then
+                echo "${pkg}: version already published to GitHub Packages — skipping."
+              else
+                echo "::error::${pkg}: publish to GitHub Packages failed"
+                exit 1
+              fi
             fi
+            echo "::endgroup::"
           done

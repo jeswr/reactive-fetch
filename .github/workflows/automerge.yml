@@ -2,14 +2,20 @@
 # DISABLED BY DEFAULT — remove the `if: false &&` guard on the job below to
 # enable. Kept here so the config is ready when the maintainer wants it.
 #
+# Uses `pull_request_target` (not `pull_request`) so the workflow runs with
+# the base-branch secrets and a writable token — Dependabot PRs opened via
+# `pull_request` only receive a read-only token, which would make
+# `gh pr merge --auto` fail. `pull_request_target` is safe here because we
+# never check out or execute PR code.
+#
 # Requires:
-# - `gh pr merge --auto` (enabled in repo settings -> General -> Allow auto-merge)
-# - `GH_TOKEN` secret with PR write rights (the workflow falls back to
-#   github.token if GH_TOKEN is missing)
+# - Repo setting: General → "Allow auto-merge" is enabled
+# - Repo setting: "Allow GitHub Actions to create and approve pull requests"
+# - Branch protection on `main` requires CI to pass before merge
 name: Dependabot auto-merge
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
 
 permissions:

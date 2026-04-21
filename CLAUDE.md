@@ -99,7 +99,7 @@ reactive-fetch/
 │   ├── core/       # @jeswr/solid-reactive-fetch          (the main library)
 │   └── react/      # @jeswr/solid-reactive-fetch-react    (React hooks, stubbed)
 ├── examples/        # vanilla-ts, react demos, callback page, client-id-document
-├── .changeset/      # changesets for versioned releases
+├── .github/         # CI (ci.yml), release (release.yml, multi-semantic-release), dependabot.yml
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 └── package.json     # workspace root
@@ -111,7 +111,7 @@ reactive-fetch/
 - **TypeScript 5.7** with `moduleResolution: "Bundler"`, strict + `noUncheckedIndexedAccess`
 - **tsup** for builds (ESM-only, DTS + source maps)
 - **vitest 4** for tests (`--passWithNoTests` in default scripts while suites are empty)
-- **changesets** for versioning and coordinated publishing
+- **multi-semantic-release** for automated, per-package versioning and publishing on push to `main` (driven by Conventional Commit messages; see `.github/workflows/release.yml` and per-package `.releaserc.json`)
 
 ### Root scripts
 
@@ -121,9 +121,7 @@ reactive-fetch/
 | `pnpm dev` | Watch-build every `packages/*` in parallel |
 | `pnpm test` | Run vitest in every `packages/*` |
 | `pnpm typecheck` | `tsc --noEmit` in every `packages/*` |
-| `pnpm changeset` | Record a change for release |
-| `pnpm version-packages` | Apply pending changesets (bumps versions, writes changelogs) |
-| `pnpm release` | Build then `changeset publish` to npm |
+| `pnpm release` | Build, then `multi-semantic-release --ignore-private-packages --deps.bump=satisfy --deps.prefix='^'` (publishes any `packages/*` with release-worthy commits; normally run by CI, not locally) |
 
 Per-package scripts mirror the root ones (minus the `--filter`).
 
