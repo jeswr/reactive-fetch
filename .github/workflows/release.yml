@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    # Run only after main-branch pushes (not forks) and not for [skip ci] commits
+    # that semantic-release itself produces when writing CHANGELOG.md back.
+    if: >-
+      github.repository == 'jeswr/reactive-fetch' &&
+      !contains(github.event.head_commit.message, '[skip ci]')
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use GH_TOKEN so the tag/commit pushes from semantic-release trigger
+          # downstream workflows (github.token doesn't, per GitHub docs).
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r build
+
+      - name: Release to npm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: pnpm exec multi-semantic-release
+
+      - name: Setup Node.js for GitHub Packages
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: '@jeswr'
+
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          for pkg in packages/core packages/react; do
+            # Skip if the package hasn't been version-bumped (i.e. multi-semantic-release
+            # didn't find a reason to release it on this run).
+            if git diff-tree --no-commit-id --name-only -r HEAD | grep -q "^${pkg}/package.json$"; then
+              (cd "${pkg}" && npm publish --access public --no-provenance) || true
+            fi
+          done
