@@ -7,8 +7,8 @@ import datasetFactory from '@rdfjs/dataset';
 import { rdfParser } from 'rdf-parse';
 import { Readable } from 'readable-stream';
 import type { DatasetCore, Quad } from '@rdfjs/types';
+import { NamedNodeAs, NamedNodeFrom } from '@rdfjs/wrapper';
 import { Agent, WebIdDataset } from '@solid/object/webid';
-import { NamedNodeAs } from '@rdfjs/wrapper';
 import { NoOidcIssuerError, WebIdProfileError } from '../errors.js';
 
 const OIDC_ISSUER_IRI = 'http://www.w3.org/ns/solid/terms#oidcIssuer';
@@ -21,13 +21,12 @@ const TURTLE_FAMILY = new Set([
 ]);
 
 class WebIdAgent extends Agent {
-  get oidcIssuer(): string | undefined {
-    // @ts-expect-error — singularNullable is protected on TermWrapper; we are a legitimate subclass
-    return this.singularNullable(OIDC_ISSUER_IRI, NamedNodeAs.string);
+  get oidcIssuers(): Set<string> {
+    return this.objects(OIDC_ISSUER_IRI, NamedNodeAs.string, NamedNodeFrom.string);
   }
 }
 
-export async function resolveOidcIssuer(webIdUrl: string): Promise<string> {
+export async function resolveOidcIssuers(webIdUrl: string): Promise<string[]> {
   let response: Response;
   try {
     response = await globalThis.fetch(webIdUrl, {
@@ -71,9 +70,14 @@ export async function resolveOidcIssuer(webIdUrl: string): Promise<string> {
     N3DataFactory,
   );
 
-  const issuer = agent.oidcIssuer;
-  if (!issuer) throw new NoOidcIssuerError(webIdUrl);
-  return issuer;
+  const issuers = [...agent.oidcIssuers];
+  if (issuers.length === 0) throw new NoOidcIssuerError(webIdUrl);
+  return issuers;
+}
+
+export async function resolveOidcIssuer(webIdUrl: string): Promise<string> {
+  const issuers = await resolveOidcIssuers(webIdUrl);
+  return issuers[0]!;
 }
 
 function parseTurtle(body: string, format: string, baseIRI: string): Quad[] {

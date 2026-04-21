@@ -68,7 +68,7 @@
   },
   "dependencies": {
     "@rdfjs/dataset": "^2.0.2",
-    "@rdfjs/wrapper": "^0.34.0",
+    "@rdfjs/wrapper": "^0.32.0",
     "@solid/object": "^0.5.0",
     "n3": "^2.0.3",
     "rdf-parse": "^5.0.0",

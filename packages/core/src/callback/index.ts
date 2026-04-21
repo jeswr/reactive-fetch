@@ -1,8 +1,13 @@
 import { Session } from '@uvdsl/solid-oidc-client-browser';
 import { LoginFailedError, ReactiveFetchError } from '../errors.js';
 import { LOGIN_COMPLETE_MESSAGE_TYPE } from '../popup.js';
-import { resolveOidcIssuer } from './resolveWebId.js';
-import { renderPromptUi } from './ui.js';
+import { resolveOidcIssuers } from './resolveWebId.js';
+import {
+  IssuerPickerCancelled,
+  renderIssuerPicker,
+  renderPromptUi,
+  type PromptUi,
+} from './ui.js';
 
 export interface MountCallbackOptions {
   root?: HTMLElement;
@@ -16,7 +21,7 @@ export async function mountCallback(options: MountCallbackOptions = {}): Promise
     return;
   }
 
-  renderPrompt(options);
+  showWebIdForm(options);
 }
 
 async function handleRedirect(clientId?: string): Promise<void> {
@@ -37,9 +42,10 @@ async function handleRedirect(clientId?: string): Promise<void> {
   window.close();
 }
 
-function renderPrompt(options: MountCallbackOptions): void {
+function showWebIdForm(options: MountCallbackOptions, seedValue?: string): void {
   const parent = options.root ?? document.body;
   const ui = renderPromptUi(parent);
+  if (seedValue) ui.input.value = seedValue;
 
   ui.root.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -61,17 +67,76 @@ function renderPrompt(options: MountCallbackOptions): void {
     ui.setBusy(true);
     ui.setStatus('Looking up your identity provider…');
 
+    let issuers: string[];
     try {
-      const issuer = await resolveOidcIssuer(webId.toString());
-      const session = options.clientId
-        ? new Session({ client_id: options.clientId })
-        : new Session({ redirect_uris: [window.location.href] });
-      await session.login(issuer, window.location.href);
+      issuers = await resolveOidcIssuers(webId.toString());
     } catch (err) {
       ui.setBusy(false);
       ui.setStatus(describeError(err), 'error');
+      return;
     }
+
+    if (issuers.length === 1) {
+      await startLogin(ui, options, issuers[0]!);
+      return;
+    }
+
+    ui.dispose();
+    await showIssuerPicker(options, parent, raw, issuers);
   });
+}
+
+async function showIssuerPicker(
+  options: MountCallbackOptions,
+  parent: HTMLElement,
+  webIdValue: string,
+  issuers: string[],
+): Promise<void> {
+  const picker = renderIssuerPicker(parent, issuers);
+
+  let chosen: string;
+  try {
+    chosen = await picker.selection;
+  } catch (err) {
+    picker.dispose();
+    if (err instanceof IssuerPickerCancelled) {
+      showWebIdForm(options, webIdValue);
+      return;
+    }
+    throw err;
+  }
+
+  picker.setBusy(true);
+  picker.setStatus('Redirecting to the identity provider…');
+  try {
+    await beginSolidLogin(options, chosen);
+  } catch (err) {
+    picker.setBusy(false);
+    picker.setStatus(describeError(err), 'error');
+  }
+}
+
+async function startLogin(
+  ui: PromptUi,
+  options: MountCallbackOptions,
+  issuer: string,
+): Promise<void> {
+  try {
+    await beginSolidLogin(options, issuer);
+  } catch (err) {
+    ui.setBusy(false);
+    ui.setStatus(describeError(err), 'error');
+  }
+}
+
+async function beginSolidLogin(
+  options: MountCallbackOptions,
+  issuer: string,
+): Promise<void> {
+  const session = options.clientId
+    ? new Session({ client_id: options.clientId })
+    : new Session({ redirect_uris: [window.location.href] });
+  await session.login(issuer, window.location.href);
 }
 
 function describeError(err: unknown): string {
