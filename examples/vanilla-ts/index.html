@@ -41,11 +41,15 @@
       session.
     </p>
     <p>
-      <button id="show-webid">Show my WebID</button>
-      <button id="fetch-private">Fetch private resource from my pod</button>
+      <button id="show-webid" data-testid="show-webid">Show my WebID</button>
+      <button id="fetch-private" data-testid="fetch-private">Fetch private resource from my pod</button>
     </p>
-    <div id="status">Ready.</div>
-    <pre id="output">(no output yet)</pre>
+    <p>
+      Signed in as:
+      <code id="webid-display" data-testid="webid-display"></code>
+    </p>
+    <div id="status" data-testid="status">Ready.</div>
+    <pre id="output" data-testid="result">(no output yet)</pre>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
