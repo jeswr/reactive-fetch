@@ -39,6 +39,17 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  // `@uvdsl/solid-oidc-client-browser` spawns a refresh worker via
+  // `new URL('./RefreshWorker.js', import.meta.url)`. Vite's dep optimizer
+  // pre-bundles the library into `node_modules/.vite/deps/`, which rewrites
+  // `import.meta.url` to a path in that directory — but the optimizer does
+  // not pull `RefreshWorker.js` in, so the Worker URL 404s and
+  // `session.restore()` hangs forever. Excluding the library from
+  // pre-bundling keeps `import.meta.url` pointing at the real package, so
+  // the sibling worker file loads correctly.
+  optimizeDeps: {
+    exclude: ['@uvdsl/solid-oidc-client-browser'],
+  },
   build: {
     rollupOptions: {
       input: {
