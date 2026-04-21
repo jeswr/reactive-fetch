@@ -37,10 +37,10 @@ export function createSessionBootstrap(clientId: string): SessionBootstrap {
   return bootstrap;
 }
 
-export async function ensureRestored(session: Session): Promise<void> {
-  if (session.isActive) return;
+export async function ensureRestored(session: Session, force = false): Promise<void> {
+  if (!force && session.isActive) return;
 
-  const existing = restorePromises.get(session);
+  const existing = !force ? restorePromises.get(session) : undefined;
   if (existing) return existing;
 
   const pending = (async () => {

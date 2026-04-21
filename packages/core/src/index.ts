@@ -65,7 +65,10 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     const pending: Promise<string> = (async () => {
       try {
         await popupPromise;
-        await ensureRestored(session);
+        // Force a fresh restore: the popup just authenticated the user and
+        // wrote state into shared IndexedDB. A cached/in-flight restore from
+        // page-load may be stale, so we skip the dedup WeakMap here.
+        await ensureRestored(session, true);
         if (!session.isActive || !session.webId) {
           throw new Error('Session did not become active after login.');
         }
