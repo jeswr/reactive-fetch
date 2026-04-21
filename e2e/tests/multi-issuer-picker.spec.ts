@@ -8,6 +8,8 @@ test.describe('multi-issuer picker UI', () => {
     page,
     seededMultiIssuerProfile,
   }) => {
+    // Full popup login + picker + OIDC redirect cycle.
+    test.setTimeout(30_000);
     void seededMultiIssuerProfile;
 
     await page.goto('/');

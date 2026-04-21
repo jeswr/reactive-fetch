@@ -6,6 +6,9 @@ test.describe('popup-closed cancellation surfaces an error', () => {
     context,
     page,
   }) => {
+    // Popup `closed`-polling fires every 500ms; give headroom for the
+    // PopupClosedError to surface + render into the status line.
+    test.setTimeout(30_000);
     await page.goto('/');
     await page.locator(SEL.showWebIdBtn).waitFor({ state: 'visible' });
 

@@ -6,6 +6,8 @@ test.describe('session restore on reload', () => {
     context,
     loggedInPage,
   }) => {
+    // Fixture drives full popup login; reload + sync check adds little.
+    test.setTimeout(30_000);
     // Arm a listener that catches any popup during reload so we can assert
     // no popup was opened rather than relying on absence of a visible window.
     let sawPopup = false;

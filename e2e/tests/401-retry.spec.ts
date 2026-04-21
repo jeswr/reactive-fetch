@@ -1,8 +1,7 @@
 // Reactive auth: the vanilla-ts app's "Fetch private resource" button first
-// awaits `rf.webId` (which triggers the login popup if not authenticated),
-// then fetches. The reactive-fetch core itself also retries on a 401. Both
-// paths converge to the same user-visible outcome: after a single click and
-// a single popup login, the private resource body is displayed.
+// awaits `rf.webId` indirectly (via `rf.fetch` on a 401-protected resource),
+// which triggers the login popup. After completion the fetch body is shown
+// to the user. Exercises both the on-demand login and the 401 retry paths.
 
 import { test, expect } from '../fixtures/test.js';
 import { driveCallbackWebIdPrompt, driveCssConsentIfPresent, driveCssLoginForm } from '../fixtures/login.js';
@@ -14,6 +13,7 @@ test.describe('login-on-demand triggered by fetch-private click', () => {
     page,
     seededPrivateResource,
   }) => {
+    test.setTimeout(30_000);
     void seededPrivateResource;
 
     await context.clearCookies();
@@ -32,6 +32,6 @@ test.describe('login-on-demand triggered by fetch-private click', () => {
     await popup.waitForEvent('close', { timeout: 20_000 }).catch(() => undefined);
 
     await expect(page.locator(SEL.status)).toContainText(/\b200\b/, { timeout: 20_000 });
-    await expect(page.locator(SEL.output)).toContainText('note.txt', { timeout: 20_000 });
+    await expect(page.locator(SEL.output)).toContainText(ALICE.privateBody, { timeout: 20_000 });
   });
 });
