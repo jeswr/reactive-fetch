@@ -27,6 +27,7 @@ That is the entire surface:
 - **`rf.webId`** — a `Promise<string>` that resolves to the authenticated WebID. Reading it when no session is active triggers the login popup and resolves once auth completes. Multiple reads share the same pending Promise
 - **Init option `clientId`** — the hosted Client ID Document URI
 - **Init option `callbackUrl`** — the URL where the consumer has mounted `mountCallback()` from `@jeswr/solid-reactive-fetch/callback`. Must be served from the same origin as the app so IndexedDB is shared. This URL must also appear in the Client ID Document's `redirect_uris`
+- **Init option `allowLocalhost`** — default **`false`**. When `true`, the issuer filter accepts `http://localhost`, `http://127.0.0.1`, and `http://[::1]` in addition to HTTPS. Must be passed to both `createReactiveFetch` and `mountCallback` since the filter runs inside the popup. Set only in local-dev builds (`import.meta.env.DEV`) — a production build with this on would let a hostile WebID redirect the popup at a local port.
 
 ### Explicitly NOT in the API
 

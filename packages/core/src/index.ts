@@ -20,6 +20,19 @@ export interface ReactiveFetchOptions {
    * message in the UI.
    */
   onRestoreError?: (err: unknown) => void;
+  /**
+   * Accept `http://localhost` / `127.0.0.1` / `[::1]` as valid OIDC issuers
+   * in addition to HTTPS. Defaults to `false` (production-safe). Set to
+   * `true` only in local dev builds that need to talk to a non-TLS IDP
+   * (Community Solid Server, ESS dev cluster, etc.).
+   *
+   * IMPORTANT: the actual issuer filter runs inside the popup, so the same
+   * value MUST also be passed to `mountCallback` on the callback page.
+   * Keeping the two in sync is the consumer's responsibility; a mismatch
+   * is practically harmless today (the factory's own filter is
+   * informational) but will bite once additional surface consults it.
+   */
+  allowLocalhost?: boolean;
 }
 
 export interface ReactiveFetch {

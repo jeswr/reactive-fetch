@@ -48,6 +48,29 @@ await rf.restorePromise;
 //   ^ never rejects; failures surface via onRestoreError only.
 ```
 
+## Security: localhost issuers
+
+By default, the library only accepts `https://` OIDC issuers. A WebID profile declaring `http://localhost:3000/` as its issuer will be rejected with an `InvalidIssuerError`. This stops a hostile profile hosted anywhere on the web from redirecting a production user's popup to whatever happens to be listening on a local port.
+
+Opt in to the loopback allowance by setting `allowLocalhost: true` — in BOTH places (filter runs inside the popup):
+
+```ts
+// Parent app
+const rf = createReactiveFetch({
+  clientId,
+  callbackUrl,
+  allowLocalhost: import.meta.env.DEV, // true in dev, false in prod
+});
+
+// Popup callback page
+mountCallback({
+  clientId,
+  allowLocalhost: import.meta.env.DEV,
+});
+```
+
+Accepted loopback hosts when enabled: `localhost`, `127.0.0.1`, and `[::1]` (IPv6, WHATWG-bracketed form). Anything else — `http://example.com`, `http://10.0.0.1`, `javascript:`, `file:`, `data:` — is rejected regardless of `allowLocalhost`.
+
 ## SSR usage
 
 `createReactiveFetch` is **browser-only** and will throw if called without `window` or `indexedDB`. The underlying Session keeps its DPoP keypair and refresh token in IndexedDB, and a long-lived Node process would leak that state across user requests.
