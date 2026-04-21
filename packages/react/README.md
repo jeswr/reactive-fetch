@@ -6,4 +6,39 @@
 
 React hooks layered on top of [`@jeswr/solid-reactive-fetch`](../core).
 
-Status: **stubbed — implementation pending core completion**.
+```tsx
+import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
+import { ReactiveFetchProvider, useWebId, useSolidFetch } from '@jeswr/solid-reactive-fetch-react';
+import { Suspense } from 'react';
+
+const rf = createReactiveFetch({ clientId, callbackUrl });
+
+function App() {
+  return (
+    <ReactiveFetchProvider value={rf}>
+      <Suspense fallback={<span>Signing in…</span>}>
+        <WebIdBadge />
+      </Suspense>
+      <PrivateResource />
+    </ReactiveFetchProvider>
+  );
+}
+
+function WebIdBadge() {
+  const webId = useWebId(); // Suspends until login completes
+  return <span>{webId}</span>;
+}
+
+function PrivateResource() {
+  const fetch = useSolidFetch();
+  const onClick = async () => {
+    const res = await fetch('https://pod.example/private');
+    console.log(await res.text());
+  };
+  return <button onClick={onClick}>Fetch</button>;
+}
+```
+
+The provider value is a `ReactiveFetch` instance from `@jeswr/solid-reactive-fetch`. `useWebId` throws the pending Promise (Suspense semantics) and re-renders with the WebID once login resolves. Concurrent consumers share one login attempt via an internal `WeakMap` keyed by the `ReactiveFetch` instance.
+
+SSR-safe: the hook suspends on the server pass so a server-rendered `<Suspense fallback={...}>` renders the fallback. `createReactiveFetch()` itself must still be called in a client-only code path (see the core package's SSR section).

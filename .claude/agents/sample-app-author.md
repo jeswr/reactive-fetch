@@ -46,3 +46,11 @@ There is NO `login()`, `logout()`, `setClientId()`, or state-change-event subscr
 - Each example is self-contained — its own `package.json`, `tsconfig.json`, build scripts.
 - Minimal dependencies beyond the framework of that example.
 - Code should read as "here's how a real developer would use this package" — not "here's a test case."
+
+## Commit hygiene in a multi-agent team
+
+Multiple teammates edit the working tree concurrently. To avoid the index being overwritten between staging and committing:
+
+- **Stage and commit in a SINGLE Bash tool call**: `git add <specific files> && git commit -m "..."`. Do NOT split them across separate calls.
+- **Never `git add .` or `git add -A`** — always name the specific files you own.
+- If you have uncommitted work and need to pause, commit it first (even WIP) rather than leaving it staged.

@@ -55,3 +55,12 @@ For each task:
 - **`context7` MCP — use it proactively for any library API question.** `mcp__context7__resolve-library-id` → `mcp__context7__query-docs`. This is especially important when you're replacing hand-rolled code with a library you haven't used recently — verify the exact API before writing the call. NEVER silence a "property does not exist" TS error with `@ts-expect-error`; that's a hallucination flag. If context7 can't answer, SendMessage to team-lead.
 - `pnpm --filter` for per-package commands
 - Grep/Glob for finding repeated patterns before unifying them
+
+## Commit hygiene in a multi-agent team
+
+Multiple teammates edit the working tree concurrently. To avoid the index being overwritten between staging and committing (this has happened twice on this repo — your commits landed with sample-app-author's work under your commit message):
+
+- **Stage and commit in a SINGLE Bash tool call**: `git add <specific files> && git commit -m "..."`. Do NOT split staging and committing across separate Bash calls — another agent's edits can overwrite your index between them.
+- **Never `git add .` or `git add -A`** — always name the specific files you own.
+- If you have uncommitted work and need to pause, commit it first (even WIP) rather than leaving it staged.
+- Do NOT rewrite history (`git rebase -i --reword`, `git commit --amend`) to fix a race-corrupted commit message after it's landed. File a followup task for post-feature-freeze cleanup instead.

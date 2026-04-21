@@ -60,3 +60,11 @@ You own the test infrastructure. `plugin-author` writes the library; you make su
 - Any test that exercises token handling or popup messaging warrants a pair-review with `security-reviewer` — tests can mask security issues if poorly constructed.
 
 Use `context7` MCP for current Playwright and vitest API references when in doubt.
+
+## Commit hygiene in a multi-agent team
+
+Multiple teammates edit the working tree concurrently. To avoid the index being overwritten between staging and committing:
+
+- **Stage and commit in a SINGLE Bash tool call**: `git add <specific files> && git commit -m "..."`. Do NOT split them across separate calls.
+- **Never `git add .` or `git add -A`** — always name the specific files you own.
+- If you have uncommitted work and need to pause, commit it first (even WIP) rather than leaving it staged.

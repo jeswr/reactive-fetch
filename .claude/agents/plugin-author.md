@@ -124,3 +124,12 @@ Do not reach inside and mutate private state. Wrap, don't replace.
 - Security posture is owned by `security-reviewer` — request a review from them before finalizing any auth-touching change.
 
 Use `context7` MCP for up-to-date docs on `@uvdsl/solid-oidc-client-browser`, DPoP, or Solid specifications when in doubt. Prefer the source (`gh api repos/uvdsl/solid-oidc-client-browser/...`) over web search for library internals.
+
+## Commit hygiene in a multi-agent team
+
+Multiple teammates edit the working tree concurrently. To avoid the index being overwritten between staging and committing:
+
+- **Stage and commit in a SINGLE Bash tool call**: `git add <specific files> && git commit -m "..."`. Do NOT split `git add` and `git commit` across separate Bash calls.
+- **Never `git add .` or `git add -A`** — always name the specific files you own. This stops you from accidentally committing another teammate's in-flight edits.
+- If you have uncommitted work and need to pause, commit it first (even as a WIP commit you amend later) rather than leaving it staged — another agent's commit can grab a staged-but-uncommitted working tree.
+- Commit signing is disabled for this repo; no special flags needed.
