@@ -47,7 +47,7 @@ export function authFetch(
   init?: RequestInit,
 ): Promise<Response> {
   if (session.isActive) {
-    return session.authFetch(input as string | URL | Request, init);
+    return session.authFetch(input, init);
   }
   return globalThis.fetch(input, init);
 }
