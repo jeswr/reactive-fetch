@@ -6,7 +6,9 @@
 
 Reactive authenticated `fetch` for Solid applications. Authentication is triggered automatically — no explicit `login()` or `logout()`.
 
-<video src="../../docs/demo.webm" controls muted width="720"></video>
+**Live demo**: <https://jeswr.github.io/reactive-fetch/>
+
+<video src="../../docs/demo.webm" controls muted width="100%"></video>
 
 ```ts
 import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
@@ -45,6 +47,30 @@ const rf = createReactiveFetch({
 await rf.restorePromise;
 //   ^ never rejects; failures surface via onRestoreError only.
 ```
+
+## Security: localhost issuers
+
+By default, the library only accepts `https://` OIDC issuers. `allowLocalhost` is a plain boolean consumers opt into — the library never reads `import.meta.env`, `process.env`, or any other environment signal behind your back. It's always the value your code passed.
+
+```ts
+// dev build: let users sign in with a pod on their own machine
+const rf = createReactiveFetch({
+  clientId,
+  callbackUrl,
+  allowLocalhost: import.meta.env.DEV, // or process.env.NODE_ENV !== 'production'
+});
+
+// The filter runs inside the popup, so pass the SAME value to mountCallback
+// on the callback page:
+mountCallback({
+  clientId,
+  allowLocalhost: import.meta.env.DEV,
+});
+```
+
+With `allowLocalhost: false` (the default), a WebID profile declaring `http://localhost:3000/` as its issuer is rejected with `InvalidIssuerError` before it can reach `session.login()`. This stops a hostile profile hosted anywhere on the web from redirecting a production user's popup to whatever happens to be listening on a local port — e.g. a dev server still running, an internal admin UI, or a credential-stealing `http://localhost/auth` spoof.
+
+Accepted loopback hosts when enabled: `localhost`, `127.0.0.1`, and `[::1]` (IPv6, WHATWG-bracketed form). Anything else — `http://example.com`, `http://10.0.0.1`, `javascript:`, `file:`, `data:` — is rejected regardless of `allowLocalhost`.
 
 ## SSR usage
 

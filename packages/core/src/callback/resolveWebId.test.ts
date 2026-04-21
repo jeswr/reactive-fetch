@@ -89,29 +89,89 @@ describe('resolveOidcIssuers', () => {
     ).rejects.toBeInstanceOf(InvalidIssuerError);
   });
 
-  test('accepts http://localhost for dev workflows', async () => {
+  test('accepts http://localhost when allowLocalhost is true', async () => {
     const body = `
       @prefix solid: <http://www.w3.org/ns/solid/terms#> .
       <https://example.com/profile#me> solid:oidcIssuer <http://localhost:3000/> .
     `;
     globalThis.fetch = mockFetchWith(body);
 
-    const issuers = await resolveOidcIssuers('https://example.com/profile#me');
+    const issuers = await resolveOidcIssuers('https://example.com/profile#me', {
+      allowLocalhost: true,
+    });
     expect(issuers).toEqual(['http://localhost:3000/']);
   });
 
-  test('accepts http://[::1] (IPv6 loopback) for dev workflows', async () => {
+  test('accepts http://[::1] (IPv6 loopback) when allowLocalhost is true', async () => {
     const body = `
       @prefix solid: <http://www.w3.org/ns/solid/terms#> .
       <https://example.com/profile#me> solid:oidcIssuer <http://[::1]:3000/> .
     `;
     globalThis.fetch = mockFetchWith(body);
 
-    const issuers = await resolveOidcIssuers('https://example.com/profile#me');
+    const issuers = await resolveOidcIssuers('https://example.com/profile#me', {
+      allowLocalhost: true,
+    });
     expect(issuers).toEqual(['http://[::1]:3000/']);
   });
 
-  test('rejects http://example.com (non-loopback plaintext) with InvalidIssuerError', async () => {
+  test('rejects http://localhost by default (allowLocalhost unset)', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <http://localhost:3000/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    await expect(
+      resolveOidcIssuers('https://example.com/profile#me'),
+    ).rejects.toBeInstanceOf(InvalidIssuerError);
+  });
+
+  test('rejects http://localhost when allowLocalhost is explicitly false', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <http://127.0.0.1:3000/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    await expect(
+      resolveOidcIssuers('https://example.com/profile#me', { allowLocalhost: false }),
+    ).rejects.toBeInstanceOf(InvalidIssuerError);
+  });
+
+  test('accepts HTTPS issuer regardless of allowLocalhost', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <https://idp.example.com/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const offBy = await resolveOidcIssuers('https://example.com/profile#me');
+    const onBy = await resolveOidcIssuers('https://example.com/profile#me', {
+      allowLocalhost: true,
+    });
+    expect(offBy).toEqual(['https://idp.example.com/']);
+    expect(onBy).toEqual(['https://idp.example.com/']);
+  });
+
+  test('rejects javascript: / file: schemes regardless of allowLocalhost', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me>
+        solid:oidcIssuer <javascript:alert(1)> ,
+                         <file:///etc/hosts> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    await expect(
+      resolveOidcIssuers('https://example.com/profile#me', { allowLocalhost: true }),
+    ).rejects.toBeInstanceOf(InvalidIssuerError);
+    await expect(
+      resolveOidcIssuers('https://example.com/profile#me', { allowLocalhost: false }),
+    ).rejects.toBeInstanceOf(InvalidIssuerError);
+  });
+
+  test('rejects http://example.com (non-loopback plaintext) even with allowLocalhost', async () => {
     const body = `
       @prefix solid: <http://www.w3.org/ns/solid/terms#> .
       <https://example.com/profile#me> solid:oidcIssuer <http://example.com/> .
@@ -119,7 +179,7 @@ describe('resolveOidcIssuers', () => {
     globalThis.fetch = mockFetchWith(body);
 
     await expect(
-      resolveOidcIssuers('https://example.com/profile#me'),
+      resolveOidcIssuers('https://example.com/profile#me', { allowLocalhost: true }),
     ).rejects.toBeInstanceOf(InvalidIssuerError);
   });
 });

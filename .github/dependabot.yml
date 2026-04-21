@@ -11,6 +11,29 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # @vitejs/plugin-react v6 requires vite v7; we ship examples on vite
+      # 6.x (which itself is coupled to @uvdsl/solid-oidc-client-browser's
+      # jose transitive). Re-evaluate when the example apps are ready to
+      # move to vite 7 or later.
+      - dependency-name: "@vitejs/plugin-react"
+        versions: [">=6.0.0"]
+      # vite v7+ pairs with @vitejs/plugin-react v6+; same deferral.
+      - dependency-name: "vite"
+        versions: [">=7.0.0"]
+      # TypeScript 6 broke tsup's DTS emission path at the time we last
+      # tried. Stay on 5.x until tsup catches up and we can retest.
+      - dependency-name: "typescript"
+        versions: [">=6.0.0"]
+      # @rdfjs/wrapper 0.34 refactored its API surface (protected instance
+      # helpers → static `SetFrom.subjectPredicate(...)` classes). Our
+      # `WebIdAgent` subclass in packages/core/src/callback/resolveWebId.ts
+      # uses the 0.32-era `this.objects(...)` instance method, which the
+      # @solid/object package — our indirect consumer — also expects.
+      # Migrate when we need another @rdfjs/wrapper capability that 0.32
+      # doesn't expose.
+      - dependency-name: "@rdfjs/wrapper"
+        versions: [">=0.34.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
