@@ -23,19 +23,21 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     if (session.isActive && session.webId) return Promise.resolve(session.webId);
     if (loginPromise) return loginPromise;
 
-    const pending: Promise<string> = (async () => {
-      await openLoginPopup({ callbackUrl });
-      await ensureRestored(session);
-      if (!session.isActive || !session.webId) {
-        throw new Error('Session did not become active after login.');
+    const run = async (): Promise<string> => {
+      try {
+        await openLoginPopup({ callbackUrl });
+        await ensureRestored(session);
+        if (!session.isActive || !session.webId) {
+          throw new Error('Session did not become active after login.');
+        }
+        return session.webId;
+      } finally {
+        if (loginPromise === pending) loginPromise = null;
       }
-      return session.webId;
-    })();
+    };
 
+    const pending = run();
     loginPromise = pending;
-    pending.finally(() => {
-      if (loginPromise === pending) loginPromise = null;
-    });
     return pending;
   };
 
