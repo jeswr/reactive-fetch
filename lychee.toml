@@ -28,4 +28,14 @@ exclude = [
   "^https://jeswr\\.github\\.io/reactive-fetch/?$",
   "^https://jeswr\\.github\\.io/reactive-fetch/vanilla-ts/?$",
   "^https://jeswr\\.github\\.io/reactive-fetch/react/?$",
+  # `examples/landing/index.html` is the landing-page template served from
+  # `_site/` once Pages has deployed. Its relative links (./demo.webm,
+  # ./vanilla-ts/, ./react/) resolve against the assembled `_site/` dir at
+  # deploy time, not against `examples/landing/`. Skip those three
+  # specific file-URL paths so lychee doesn't flag them as missing locally
+  # — the post-deploy smoke test in deploy-pages.yml already verifies the
+  # corresponding HTTPS URLs after publish.
+  "^file://.*/examples/landing/demo\\.webm$",
+  "^file://.*/examples/landing/vanilla-ts/?$",
+  "^file://.*/examples/landing/react/?$",
 ]
