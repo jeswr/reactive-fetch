@@ -26,8 +26,8 @@ test.describe('popup-closed cancellation surfaces an error', () => {
     await expect(status).toContainText(/error/i, { timeout: 15_000 });
     await expect(status).toContainText(/popup/i);
 
-    // Output still shows the (non-WebID) popup-closed error message — the
-    // WebID should not have been written.
-    await expect(page.locator(SEL.output)).not.toContainText('/profile/card#me');
+    // The WebID-display element stays empty — we never resolved past the
+    // cancellation, so no WebID should be rendered.
+    await expect(page.locator(SEL.webIdDisplay)).toHaveText('');
   });
 });

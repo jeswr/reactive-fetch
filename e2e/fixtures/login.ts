@@ -74,5 +74,7 @@ export async function loginAs(
   // close happening before we observe it.
   await popup.waitForEvent('close', { timeout: 20_000 }).catch(() => undefined);
 
-  await expect(page.locator(SEL.output)).toContainText(user.webId, { timeout: 20_000 });
+  // The WebID is written to a dedicated `#webid-display` element so that
+  // subsequent fetch-body responses in `#output` don't clobber it.
+  await expect(page.locator(SEL.webIdDisplay)).toHaveText(user.webId, { timeout: 20_000 });
 }

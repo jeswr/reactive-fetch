@@ -4,6 +4,7 @@ import { ALICE, SEL } from '../fixtures/constants.js';
 
 test.describe('golden path: read WebID via popup login', () => {
   test('displays alice WebID after completing popup login', async ({ context, page }) => {
+    test.setTimeout(30_000);
     await page.goto('/');
     await page.locator(SEL.showWebIdBtn).waitFor({ state: 'visible' });
 
@@ -19,7 +20,9 @@ test.describe('golden path: read WebID via popup login', () => {
     // before we attach the listener.
     await popup.waitForEvent('close', { timeout: 20_000 }).catch(() => undefined);
 
-    await expect(page.locator(SEL.output)).toContainText(ALICE.webId, { timeout: 20_000 });
+    // The app renders the resolved WebID into `#webid-display`, not into
+    // `#output` (which is reserved for fetch-body responses).
+    await expect(page.locator(SEL.webIdDisplay)).toHaveText(ALICE.webId, { timeout: 20_000 });
     await expect(page.locator(SEL.status)).toContainText(/signed in/i);
   });
 });

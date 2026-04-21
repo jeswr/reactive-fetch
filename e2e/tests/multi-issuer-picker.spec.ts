@@ -42,7 +42,7 @@ test.describe('multi-issuer picker UI', () => {
 
     await popup.waitForEvent('close', { timeout: 20_000 }).catch(() => undefined);
 
-    await expect(page.locator(SEL.output)).toContainText(MULTI_ISSUER.webId, {
+    await expect(page.locator(SEL.webIdDisplay)).toHaveText(MULTI_ISSUER.webId, {
       timeout: 20_000,
     });
   });

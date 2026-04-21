@@ -51,12 +51,14 @@ test.describe('demo', () => {
 
     // 6. Popup self-closes; WebID resolves in the opener.
     await popup.waitForEvent('close', { timeout: 20_000 }).catch(() => undefined);
-    await expect(page.locator(SEL.output)).toContainText(ALICE.webId, { timeout: 20_000 });
+    await expect(page.locator(SEL.webIdDisplay)).toHaveText(ALICE.webId, { timeout: 20_000 });
     await highlight(2_000);
 
     // 7. Authenticated fetch.
     await page.locator(SEL.fetchPrivateBtn).click();
-    await expect(page.locator(SEL.output)).not.toBeEmpty({ timeout: 20_000 });
+    await expect(page.locator(SEL.output)).toContainText(ALICE.privateBody, {
+      timeout: 20_000,
+    });
     // Let the viewer absorb the final result.
     await highlight(3_000);
   });

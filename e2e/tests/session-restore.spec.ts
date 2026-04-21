@@ -24,7 +24,7 @@ test.describe('session restore on reload', () => {
       // IndexedDB, this should resolve immediately without a popup.
       await loggedInPage.locator(SEL.showWebIdBtn).click();
 
-      await expect(loggedInPage.locator(SEL.output)).toContainText(ALICE.webId, {
+      await expect(loggedInPage.locator(SEL.webIdDisplay)).toHaveText(ALICE.webId, {
         timeout: 15_000,
       });
       expect(sawPopup).toBe(false);
