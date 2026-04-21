@@ -23,6 +23,12 @@ export interface ReactiveFetch {
  * in `typeof window !== 'undefined'`, mount it inside `useEffect`, or
  * dynamic-import the module from a `"use client"` boundary.
  *
+ * Reading `rf.webId` or calling `rf.fetch()` that ends up needing login
+ * MUST happen directly inside a user-gesture stack frame (e.g. a click
+ * handler). `window.open` cannot be called across `await` boundaries
+ * without losing the gesture and being blocked — any `setTimeout(() =>
+ * rf.webId)` shape will be blocked by Chromium's popup blocker.
+ *
  * @throws if invoked outside a browser (no `window` or no `indexedDB`).
  */
 export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetch {
@@ -40,12 +46,25 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
   const ensureLoggedIn = (): Promise<string> => {
     if (loginPromise) return loginPromise;
 
+    // Fast path: restore already flipped isActive true, no popup needed.
+    // Checked synchronously so a click handler that never reaches
+    // openLoginPopup keeps its user-gesture credits intact.
+    if (session.isActive && session.webId) {
+      return Promise.resolve(session.webId);
+    }
+
+    // Slow path: open the popup synchronously from this call stack.
+    // Any `await` before `window.open` burns the user-gesture budget and
+    // Chromium's popup blocker refuses the request — which is exactly
+    // what the prior shape (`await restorePromise` first) hit in e2e.
+    // Trade-off: if restorePromise was about to succeed, we briefly open
+    // a redundant popup. Acceptable — any shape that defers window.open
+    // past an await cannot work in strict popup-blocker browsers.
+    const popupPromise = openLoginPopup({ callbackUrl });
+
     const pending: Promise<string> = (async () => {
       try {
-        await restorePromise;
-        if (session.isActive && session.webId) return session.webId;
-
-        await openLoginPopup({ callbackUrl });
+        await popupPromise;
         await ensureRestored(session);
         if (!session.isActive || !session.webId) {
           throw new Error('Session did not become active after login.');
@@ -65,13 +84,24 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
       return ensureLoggedIn();
     },
     async fetch(input, init) {
-      await restorePromise;
       if (session.isActive) {
         return authFetch(session, input, init);
       }
 
+      // Send the unauthenticated attempt synchronously so that if a 401
+      // lands and we need to trigger login, the caller's user-gesture
+      // credit still stretches to the window.open call below.
       const { request, retry } = prepareRetryable(input, init);
-      const response = await globalThis.fetch(request);
+      const responsePromise = globalThis.fetch(request);
+
+      await restorePromise;
+      if (session.isActive) {
+        const response = await responsePromise;
+        if (response.status !== 401) return response;
+        return authFetch(session, retry.input, retry.init);
+      }
+
+      const response = await responsePromise;
       if (response.status !== 401) return response;
 
       await ensureLoggedIn();
