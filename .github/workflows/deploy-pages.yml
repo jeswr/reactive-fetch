@@ -1,0 +1,112 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow only one concurrent Pages deployment; do not cancel in-progress runs
+# so an active publish can finish before starting the next one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    env:
+      SITE_BASE: /reactive-fetch
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library packages
+        run: pnpm --filter './packages/*' -r build
+
+      - name: Build vanilla-ts example
+        env:
+          VITE_BASE: /reactive-fetch/vanilla-ts/
+        run: pnpm --filter @jeswr/example-vanilla-ts build
+
+      - name: Build React example
+        env:
+          VITE_BASE: /reactive-fetch/react/
+        run: pnpm --filter @jeswr/example-react build
+
+      - name: Assemble _site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -R examples/landing/. _site/
+          cp docs/demo.webm _site/demo.webm || true
+          mkdir -p _site/vanilla-ts _site/react
+          cp -R examples/vanilla-ts/dist/. _site/vanilla-ts/
+          cp -R examples/react/dist/. _site/react/
+
+      - name: Write production Client ID Documents
+        run: |
+          set -euo pipefail
+          cat > _site/vanilla-ts/solid-client.jsonld <<'JSON'
+          {
+            "@context": "https://www.w3.org/ns/solid/oidc-context.jsonld",
+            "client_id": "https://jeswr.github.io/reactive-fetch/vanilla-ts/solid-client.jsonld",
+            "client_name": "reactive-fetch vanilla-ts example (GitHub Pages)",
+            "redirect_uris": ["https://jeswr.github.io/reactive-fetch/vanilla-ts/callback.html"],
+            "post_logout_redirect_uris": ["https://jeswr.github.io/reactive-fetch/vanilla-ts/"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "scope": "openid webid offline_access",
+            "token_endpoint_auth_method": "none"
+          }
+          JSON
+          cat > _site/react/solid-client.jsonld <<'JSON'
+          {
+            "@context": "https://www.w3.org/ns/solid/oidc-context.jsonld",
+            "client_id": "https://jeswr.github.io/reactive-fetch/react/solid-client.jsonld",
+            "client_name": "reactive-fetch React example (GitHub Pages)",
+            "redirect_uris": ["https://jeswr.github.io/reactive-fetch/react/callback.html"],
+            "post_logout_redirect_uris": ["https://jeswr.github.io/reactive-fetch/react/"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "scope": "openid webid offline_access",
+            "token_endpoint_auth_method": "none"
+          }
+          JSON
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

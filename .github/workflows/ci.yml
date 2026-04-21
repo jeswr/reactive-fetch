@@ -60,6 +60,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build packages (typecheck depends on built dist types)
+        run: pnpm --filter './packages/*' build
+
       - name: Typecheck all packages
         run: pnpm -r typecheck
 
@@ -95,7 +98,7 @@ jobs:
           path: packages
 
       - name: Run unit tests
-        run: pnpm -r test
+        run: pnpm --filter './packages/*' test
 
   e2e:
     name: E2E (Playwright chromium)
@@ -154,3 +157,37 @@ jobs:
           name: playwright-test-results
           path: e2e/test-results
           retention-days: 14
+
+  security:
+    name: Security
+    # Runs in parallel with test/e2e — this job is purely about invariants,
+    # it doesn't depend on built artifacts.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit production deps for known vulnerabilities
+        # `--prod` scopes to what ships to consumers; dev deps are allowed to
+        # carry known advisories that don't reach a published artifact.
+        # `--audit-level=high` fails only on High/Critical — Moderate/Low are
+        # surfaced in the log but don't block merges; they're tracked via
+        # Dependabot instead.
+        run: pnpm audit --prod --audit-level=high
+
+      - name: Run security-invariant tests
+        # Covers the postMessage/eval/innerHTML/etc. source-grep assertions in
+        # packages/core/src/security.test.ts. Does not require a build.
+        run: pnpm --filter @jeswr/solid-reactive-fetch test -- src/security.test.ts

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>reactive-fetch &middot; live demos</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: 780px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.55;
+      }
+      h1 {
+        margin-bottom: 0.25rem;
+      }
+      .tagline {
+        color: #555;
+        margin-top: 0;
+      }
+      video {
+        display: block;
+        width: 100%;
+        margin: 1.5rem 0;
+        border-radius: 6px;
+        background: #000;
+      }
+      .tryit {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin: 1.5rem 0;
+      }
+      .tryit a {
+        flex: 1 1 200px;
+        display: block;
+        padding: 1rem 1.25rem;
+        text-align: center;
+        text-decoration: none;
+        color: inherit;
+        background: #f4f4f4;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-weight: 600;
+      }
+      .tryit a:hover {
+        background: #eaeaea;
+      }
+      .note {
+        background: #fff7e6;
+        border-left: 4px solid #f0b400;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        font-size: 0.95rem;
+      }
+      footer {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        color: #666;
+      }
+      @media (prefers-color-scheme: dark) {
+        .tryit a {
+          background: #222;
+          border-color: #444;
+        }
+        .tryit a:hover {
+          background: #2c2c2c;
+        }
+        .tagline {
+          color: #bbb;
+        }
+        .note {
+          background: #3a2f0d;
+          border-left-color: #f0b400;
+          color: #f3e3b1;
+        }
+        footer {
+          color: #aaa;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>reactive-fetch</h1>
+    <p class="tagline">
+      A reactive authenticated <code>fetch</code> for Solid applications,
+      driven by a popup-based login flow (no browser extension required).
+    </p>
+
+    <video controls muted playsinline src="./demo.webm"></video>
+
+    <p>
+      The left pane is the opener app; the right pane is the login popup
+      (WebID prompt, CSS login form, consent) so the whole flow is visible in
+      one take.
+    </p>
+
+    <h2>Try the live demos</h2>
+    <div class="tryit">
+      <a href="./vanilla-ts/">Vanilla TS demo &rarr;</a>
+      <a href="./react/">React demo &rarr;</a>
+    </div>
+
+    <p class="note">
+      You'll need a Solid WebID to sign in. Don't have one? Create a free
+      account at
+      <a href="https://solidcommunity.net/">solidcommunity.net</a> or
+      <a href="https://inrupt.com/">inrupt.com</a>.
+    </p>
+
+    <h2>Links</h2>
+    <ul>
+      <li><a href="https://github.com/jeswr/reactive-fetch">Source on GitHub</a></li>
+      <li><a href="https://www.npmjs.com/package/@jeswr/solid-reactive-fetch"><code>@jeswr/solid-reactive-fetch</code> on npm</a></li>
+      <li><a href="https://www.npmjs.com/package/@jeswr/solid-reactive-fetch-react"><code>@jeswr/solid-reactive-fetch-react</code> on npm</a></li>
+    </ul>
+
+    <footer>
+      Built with Solid-OIDC and DPoP. See the
+      <a href="https://github.com/jeswr/reactive-fetch">repo</a> for design
+      notes.
+    </footer>
+  </body>
+</html>
