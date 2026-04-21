@@ -22,12 +22,6 @@ exclude = [
   "^https://myapp\\.example",
   "^https://pod\\.example",
   "^https://your\\.pod",
-  # Until the GitHub Pages deploy is known-healthy (task #31), skip the
-  # live-site URLs. Remove these lines once the first successful deploy +
-  # smoke-test pipeline has run on main.
-  "^https://jeswr\\.github\\.io/reactive-fetch/?$",
-  "^https://jeswr\\.github\\.io/reactive-fetch/vanilla-ts/?$",
-  "^https://jeswr\\.github\\.io/reactive-fetch/react/?$",
   # `examples/landing/index.html` is the landing-page template served from
   # `_site/` once Pages has deployed. Its relative links (./demo.webm,
   # ./vanilla-ts/, ./react/) resolve against the assembled `_site/` dir at
