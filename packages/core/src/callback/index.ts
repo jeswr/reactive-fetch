@@ -26,7 +26,7 @@ export async function mountCallback(options: MountCallbackOptions = {}): Promise
 
 async function handleRedirect(clientId?: string): Promise<void> {
   try {
-    const session = clientId ? new Session({ client_id: clientId }) : new Session();
+    const session = buildSession(clientId);
     await session.handleRedirectFromLogin();
   } catch (cause) {
     throw new LoginFailedError('Failed to handle IDP redirect inside popup.', { cause });
@@ -133,10 +133,21 @@ async function beginSolidLogin(
   options: MountCallbackOptions,
   issuer: string,
 ): Promise<void> {
-  const session = options.clientId
-    ? new Session({ client_id: options.clientId })
-    : new Session({ redirect_uris: [window.location.href] });
+  const session = buildSession(options.clientId);
   await session.login(issuer, window.location.href);
+}
+
+// The popup constructs two Sessions — one before the IDP redirect (for
+// `login`) and one after (for `handleRedirectFromLogin`). Both must receive
+// the same client details so the second Session can rehydrate what the
+// first one persisted. `@uvdsl/solid-oidc-client-browser` accepts either a
+// hosted Client ID Document URI (preferred) or dynamic-registration details
+// with an explicit redirect_uris array.
+function buildSession(clientId?: string): Session {
+  if (clientId) {
+    return new Session({ client_id: clientId });
+  }
+  return new Session({ redirect_uris: [window.location.href] });
 }
 
 function describeError(err: unknown): string {
