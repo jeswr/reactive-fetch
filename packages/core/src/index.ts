@@ -13,6 +13,18 @@ export interface ReactiveFetch {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
 
+/**
+ * Build a reactive authenticated fetch over `@uvdsl/solid-oidc-client-browser`.
+ *
+ * Browser-only. Constructing this in a Node/SSR environment will throw —
+ * the underlying Session keeps its DPoP keypair and refresh token in
+ * IndexedDB, and a shared Node process would leak that state across user
+ * requests. In Next.js / Remix / SvelteKit either wrap the construction
+ * in `typeof window !== 'undefined'`, mount it inside `useEffect`, or
+ * dynamic-import the module from a `"use client"` boundary.
+ *
+ * @throws if invoked outside a browser (no `window` or no `indexedDB`).
+ */
 export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetch {
   const { clientId, callbackUrl } = options;
   const { session } = createSessionBootstrap(clientId);

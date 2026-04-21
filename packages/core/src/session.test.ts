@@ -194,3 +194,27 @@ describe('authFetch', () => {
     expect(fake.authFetchCalls).toHaveLength(0);
   });
 });
+
+describe('SSR environment guard', () => {
+  test('createSessionBootstrap throws when window is undefined', () => {
+    vi.stubGlobal('window', undefined);
+    try {
+      expect(() =>
+        sessionModule.createSessionBootstrap('https://app.example/id'),
+      ).toThrow(/browser context/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test('createSessionBootstrap throws when indexedDB is undefined', () => {
+    vi.stubGlobal('indexedDB', undefined);
+    try {
+      expect(() =>
+        sessionModule.createSessionBootstrap('https://app.example/id'),
+      ).toThrow(/browser context/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

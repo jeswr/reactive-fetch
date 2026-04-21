@@ -69,7 +69,7 @@ When either `rf.fetch` gets a 401 or `rf.webId` is read with no active session:
 - **Origin-validated `postMessage`** as the popup→opener signal channel (used only to notify the parent that login completed and to close the popup; tokens themselves never cross the channel — they live in shared `IndexedDB`)
 - **Reactive** — not just promise-returning; consumers can react to session changes without polling
 - **Framework-agnostic** core, with thin adapters possible later (React hook, Svelte store, etc.)
-- **Browser-first** but should not break in SSR bundlers (Next.js, Remix, SvelteKit) — either SSR-safe or cleanly tree-shakeable
+- **Browser-only** — `createReactiveFetch` **throws** on Node/SSR (no `window` or no `indexedDB`). The underlying Session keeps its non-extractable DPoP keypair and refresh token in IndexedDB, and a long-lived Node process sharing that singleton across users would leak tokens between requests. In Next.js / Remix / SvelteKit, construct inside a `"use client"` boundary, `useEffect`, or a `typeof window !== 'undefined'` guard. The module itself is importable in SSR bundles without throwing — only `createReactiveFetch()` invocation is guarded.
 
 ## Agents (team roles)
 
