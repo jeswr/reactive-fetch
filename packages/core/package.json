@@ -37,7 +37,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "clean": "rimraf dist"
   },
   "engines": {
@@ -61,6 +61,7 @@
     "@rdfjs/types": "^2.0.1",
     "@types/content-type": "^1.1.9",
     "@types/n3": "^1.26.1",
+    "@types/node": "^25.6.0",
     "@types/rdfjs__dataset": "^2.0.7",
     "@types/readable-stream": "^4.0.23",
     "@uvdsl/solid-oidc-client-browser": "^0.2.2",
