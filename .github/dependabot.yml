@@ -25,15 +25,19 @@ updates:
       # tried. Stay on 5.x until tsup catches up and we can retest.
       - dependency-name: "typescript"
         versions: [">=6.0.0"]
-      # @rdfjs/wrapper 0.34 refactored its API surface (protected instance
-      # helpers → static `SetFrom.subjectPredicate(...)` classes). Our
-      # `WebIdAgent` subclass in packages/core/src/callback/resolveWebId.ts
-      # uses the 0.32-era `this.objects(...)` instance method, which the
-      # @solid/object package — our indirect consumer — also expects.
-      # Migrate when we need another @rdfjs/wrapper capability that 0.32
-      # doesn't expose.
+      # @rdfjs/wrapper 0.33 already landed the TermWrapper refactor that
+      # breaks our `WebIdAgent` subclass (packages/core/src/callback/
+      # resolveWebId.ts) and the transitive `@solid/object` consumer: both
+      # expect the 0.32-era private `original` field and `this.objects(...)`
+      # instance helpers, while 0.33 moves helpers to static classes and
+      # changes the private field shape. Dependabot PR #11 surfaced this —
+      # CI failed on typecheck (`TS2345` on a `termToString` cast) and on
+      # runtime (`TypeError: Object must be a class TermWrapper`).
+      # Tighten the floor to >=0.33.0 so future Dependabot runs don't
+      # reopen the same dead-end PR. Revisit when we need a capability
+      # 0.32 doesn't expose and are ready to migrate to the static API.
       - dependency-name: "@rdfjs/wrapper"
-        versions: [">=0.34.0"]
+        versions: [">=0.33.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
