@@ -85,12 +85,15 @@ jobs:
           git pull --ff-only origin main
           # Collect every packages/*/package.json touched in the release range.
           # This is the authoritative signal that multi-semantic-release bumped a package.
-          changed=$(git diff --name-only "${PRE_SHA}..HEAD" -- 'packages/*/package.json' | xargs -n1 dirname | sort -u)
-          if [ -z "${changed}" ]; then
+          # Read line-by-line instead of piping through xargs so an empty diff is handled
+          # cleanly (bare xargs on empty input under `set -e` fails the step).
+          manifests=$(git diff --name-only "${PRE_SHA}..HEAD" -- 'packages/*/package.json')
+          if [ -z "${manifests}" ]; then
             echo "No packages were released on this run — skipping GitHub Packages mirror."
             exit 0
           fi
-          for pkg in ${changed}; do
+          while IFS= read -r manifest; do
+            pkg=$(dirname "${manifest}")
             echo "::group::Mirror ${pkg} to GitHub Packages"
             # E409 is the npm response for "this version already exists" — benign on retry
             # but every other failure (auth, network, manifest validation) should fail the job.
@@ -103,4 +106,4 @@ jobs:
               fi
             fi
             echo "::endgroup::"
-          done
+          done <<< "${manifests}"
