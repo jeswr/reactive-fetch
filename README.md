@@ -43,6 +43,33 @@ See [`CLAUDE.md`](CLAUDE.md) for design notes.
 
 Releases are fully automated via [semantic-release](https://github.com/semantic-release/semantic-release). Every push to `main` runs [`multi-semantic-release`](https://github.com/qiwi/multi-semantic-release), which publishes each package independently to npm and GitHub Packages based on its own conventional-commit history.
 
+## Publishing
+
+Versioning is driven by [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `feat: …` → minor bump
+- `fix: …` → patch bump
+- A `BREAKING CHANGE:` footer (or `!` after the type, e.g. `feat!:`) → major bump
+
+Releases trigger automatically on every push to `main` via [`.github/workflows/release.yml`](.github/workflows/release.yml). The workflow authenticates to npm via [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC) — no `NPM_TOKEN` secret is required.
+
+### Adding a new publishable package
+
+1. Publish the first version manually from your machine:
+
+   ```bash
+   npm login
+   pnpm --filter <package-name> publish
+   ```
+
+2. On npmjs.com, go to **https://www.npmjs.com/package/\<package-name\>/access** and add a Trusted Publisher pointing at:
+   - Repository: `jeswr/reactive-fetch`
+   - Workflow: `release.yml`
+
+3. Subsequent releases flow through CI automatically — no token needed.
+
+Once Trusted Publishers are configured for both `@jeswr/solid-reactive-fetch` and `@jeswr/solid-reactive-fetch-react`, the `NPM_TOKEN` repo secret can be deleted.
+
 ## Deploying this repo
 
 ### Prerequisites (one-time, user action required)
@@ -52,8 +79,9 @@ Before the GitHub Pages workflow can publish the live demo:
 1. **Enable Pages** — go to **Settings → Pages** on GitHub and set **Source** to **GitHub Actions**. The `deploy-pages.yml` workflow uses `actions/configure-pages@v5` with `enablement: true` so it will auto-enable on first run if org policy allows it; if auto-enablement is blocked (common for org-owned repos) flip the setting manually.
 
 2. **Add repo secrets** for the release workflow:
-   - `NPM_TOKEN` — npm automation token (classic, or granular with `read:packages write:packages` for the `@jeswr` scope)
    - `GH_TOKEN` — personal access token with `repo` + `workflow` scopes (so `semantic-release` can create tags and trigger downstream workflows). GitHub's default `github.token` won't trigger those downstream workflows.
+
+   npm authentication uses Trusted Publishing (OIDC) and does not require an `NPM_TOKEN` secret. See [Publishing](#publishing) for how to configure a Trusted Publisher for each package on npmjs.com.
 
 ### After enabling Pages
 
