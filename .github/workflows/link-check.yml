@@ -1,0 +1,60 @@
+name: Link check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily at 08:00 UTC — catches link rot (external sites going down,
+    # changelog URLs moving) that push/PR triggers would miss.
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write  # used by the failure-reporter step below
+
+concurrency:
+  group: link-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lychee:
+    name: lychee
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # lychee-action reads `lychee.toml` at repo root automatically — see that
+      # file for exclude/retry/accept config.
+      - name: Check links
+        id: lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --verbose
+            --no-progress
+            --exclude-path node_modules
+            --exclude-path dist
+            --exclude-path .pnpm-store
+            --exclude-path e2e/playwright-report
+            --exclude-path e2e/test-results
+            --exclude-path docs/demo.gif
+            --exclude-path docs/demo.mp4
+            --exclude-path docs/demo.webm
+            './**/*.md'
+            './**/*.html'
+            './packages/*/package.json'
+          fail: true
+
+      - name: File an issue if the nightly run is red
+        # Only open an issue from the scheduled run. Push/PR failures already
+        # surface as a red check on the commit, so filing an issue there
+        # would be noise.
+        if: ${{ failure() && github.event_name == 'schedule' }}
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: 'Nightly link check failed'
+          content-filepath: ./lychee/out.md
+          labels: broken-link

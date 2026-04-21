@@ -1,0 +1,31 @@
+# Configuration for lychee (link checker) — see
+# https://lychee.cli.rs/configuration/ for the full schema.
+# Used by .github/workflows/link-check.yml on push, PR, and a nightly cron.
+
+# Match common "I'm a bot, go away" responses as OK. 429 (rate-limited)
+# is treated as healthy to avoid flaking the check on popular hosts
+# that throttle GitHub Actions runners.
+accept = [200, 206, 300, 301, 302, 303, 304, 307, 308, 403, 429]
+
+# Cache positive results for a day — trims runtime on push/PR to seconds.
+cache = true
+max_cache_age = "1d"
+
+# Retry transient failures before giving up.
+retry_wait_time = 2
+max_retries = 3
+
+# Patterns we know will 404 by design or aren't worth checking.
+exclude = [
+  # Placeholder hosts used in code samples / design docs.
+  "^https://example\\.org",
+  "^https://myapp\\.example",
+  "^https://pod\\.example",
+  "^https://your\\.pod",
+  # Until the GitHub Pages deploy is known-healthy (task #31), skip the
+  # live-site URLs. Remove these lines once the first successful deploy +
+  # smoke-test pipeline has run on main.
+  "^https://jeswr\\.github\\.io/reactive-fetch/?$",
+  "^https://jeswr\\.github\\.io/reactive-fetch/vanilla-ts/?$",
+  "^https://jeswr\\.github\\.io/reactive-fetch/react/?$",
+]
