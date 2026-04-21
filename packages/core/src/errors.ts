@@ -6,6 +6,7 @@ export type ReactiveFetchErrorCode =
   | 'no_oidc_issuer'
   | 'invalid_issuer'
   | 'login_failed'
+  | 'session_restore_failed'
   | 'origin_mismatch';
 
 export abstract class ReactiveFetchError extends Error {
@@ -99,6 +100,18 @@ export class LoginFailedError extends ReactiveFetchError {
   constructor(message = 'Solid-OIDC login flow failed.', options?: ErrorOptions) {
     super(message, options);
     this.name = 'LoginFailedError';
+  }
+}
+
+export class SessionRestoreFailedError extends ReactiveFetchError {
+  readonly code = 'session_restore_failed';
+
+  constructor(
+    message = 'Session did not become active after login — the underlying library resolved restore() without flipping isActive, usually indicating a malformed access token or a DPoP / client_id mismatch between popup and opener.',
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'SessionRestoreFailedError';
   }
 }
 

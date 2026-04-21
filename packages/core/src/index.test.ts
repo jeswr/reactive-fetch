@@ -15,6 +15,10 @@ import { installMockWindowOpen, type MockWindowOpenStub } from '../test/helpers/
 const { FakeSession } = vi.hoisted(() => {
   class FakeSession {
     static lastInstance: FakeSession | undefined;
+    // Tests can set this to mutate each new instance before anyone holds a
+    // reference — useful when the test needs to intercept the
+    // construction-time `restore()` call before its first microtask drains.
+    static onConstruct: ((instance: FakeSession) => void) | undefined;
     isActive = false;
     webId: string | undefined;
     restoreCalls = 0;
@@ -25,6 +29,7 @@ const { FakeSession } = vi.hoisted(() => {
 
     constructor(_details: { client_id: string }) {
       FakeSession.lastInstance = this;
+      FakeSession.onConstruct?.(this);
     }
 
     async restore(): Promise<void> {
@@ -402,5 +407,66 @@ describe('createReactiveFetch: concurrent login dedup', () => {
     await completeLoginPopup(popup2);
     await expect(second).resolves.toBe('https://user.example/me');
     expect(stub.calls).toHaveLength(2);
+  });
+});
+
+describe('createReactiveFetch: restore observability', () => {
+  afterEach(() => {
+    FakeSession.onConstruct = undefined;
+  });
+
+  test('onRestoreError is invoked when construction-time restore throws', async () => {
+    FakeSession.onConstruct = (instance) => {
+      instance.restoreImpl = async () => {
+        throw new Error('IDB corrupt');
+      };
+    };
+
+    const onRestoreError = vi.fn();
+    const rf = createReactiveFetch({
+      clientId: 'https://app.example/id',
+      callbackUrl: '/callback',
+      onRestoreError,
+    });
+
+    await rf.restorePromise;
+    expect(onRestoreError).toHaveBeenCalledOnce();
+    const [received] = onRestoreError.mock.calls[0]!;
+    expect(received).toBeInstanceOf(Error);
+  });
+
+  test('rf.restorePromise resolves (never rejects) even when restore fails', async () => {
+    FakeSession.onConstruct = (instance) => {
+      instance.restoreImpl = async () => {
+        throw new Error('boom');
+      };
+    };
+
+    const rf = createReactiveFetch({
+      clientId: 'https://app.example/id',
+      callbackUrl: '/callback',
+    });
+    // No onRestoreError — failure must still be swallowed so the Promise settles.
+    await expect(rf.restorePromise).resolves.toBeUndefined();
+  });
+
+  test('post-login session inactivity throws SessionRestoreFailedError', async () => {
+    const { SessionRestoreFailedError, ReactiveFetchError } = await import('./errors.js');
+    const popup = createMockPopup();
+    stub.nextPopup(popup);
+
+    const rf = createReactiveFetch({
+      clientId: 'https://app.example/id',
+      callbackUrl: '/callback',
+    });
+
+    // Leave restoreImpl as the default no-op so session stays inactive even
+    // after the post-popup forced restore.
+    const webIdPromise = rf.webId.catch((e: unknown) => e);
+    await completeLoginPopup(popup);
+    const err = await webIdPromise;
+    expect(err).toBeInstanceOf(SessionRestoreFailedError);
+    expect(err).toBeInstanceOf(ReactiveFetchError);
+    expect((err as { code: string }).code).toBe('session_restore_failed');
   });
 });

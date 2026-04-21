@@ -11,6 +11,7 @@ import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
 
 const rf = createReactiveFetch({
   clientId: 'https://myapp.example/solid-client.jsonld',
+  callbackUrl: 'https://myapp.example/reactive-fetch-callback',
 });
 
 // Reading webId triggers the login popup if no session is active.
@@ -18,6 +19,29 @@ const webId = await rf.webId;
 
 // Fetching a private resource: tries unauthenticated first, retries with DPoP-bound auth on 401.
 const res = await rf.fetch('https://pod.example/private-resource');
+```
+
+## Restore lifecycle
+
+On construction, `createReactiveFetch` tries to rehydrate any session previously persisted in IndexedDB. Two escape hatches are exposed for UIs that want to render a loading state or surface restore errors:
+
+```ts
+const rf = createReactiveFetch({
+  clientId: '…',
+  callbackUrl: '…',
+  onRestoreError(err) {
+    // Invoked if the construction-time restore attempt rejects (malformed
+    // refresh token, token endpoint unreachable, corrupt IndexedDB, etc.).
+    // The factory itself never rejects — a failed restore leaves the
+    // session inactive and the next rf.webId / rf.fetch call triggers
+    // the popup. Use this to log or to show a "session expired" toast.
+    console.warn('Could not restore previous session:', err);
+  },
+});
+
+// Render a spinner while we're trying to rehydrate.
+await rf.restorePromise;
+//   ^ never rejects; failures surface via onRestoreError only.
 ```
 
 ## SSR usage

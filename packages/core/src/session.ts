@@ -37,6 +37,19 @@ export function createSessionBootstrap(clientId: string): SessionBootstrap {
   return bootstrap;
 }
 
+// Drop the cached Session for a clientId and construct a fresh one. Used after
+// a popup login completes, because the opener's pre-popup Session instance may
+// hold internal state (notably a refreshPromise from a no-refresh-token-yet
+// construction-time restore) that shadows the IDB writes the popup just made.
+// The uvdsl Session's `this.refreshPromise` dedup returns the stale
+// (pre-popup) refresh promise from subsequent `restore()` calls; rebuilding
+// the Session sidesteps it.
+export function rebuildSessionBootstrap(clientId: string): SessionBootstrap {
+  assertBrowserEnvironment();
+  cache.delete(clientId);
+  return createSessionBootstrap(clientId);
+}
+
 export async function ensureRestored(session: Session, force = false): Promise<void> {
   if (!force && session.isActive) return;
 

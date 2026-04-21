@@ -1,16 +1,38 @@
-import { createSessionBootstrap, ensureRestored, authFetch } from './session.js';
+import {
+  createSessionBootstrap,
+  ensureRestored,
+  authFetch,
+} from './session.js';
 import { openLoginPopup } from './popup.js';
+import { SessionRestoreFailedError } from './errors.js';
 
 export * from './errors.js';
 
 export interface ReactiveFetchOptions {
   clientId: string;
   callbackUrl: string;
+  /**
+   * Invoked if the construction-time `ensureRestored` call rejects (malformed
+   * refresh token, token endpoint unreachable, corrupt IndexedDB, etc.). The
+   * factory itself never rejects at construction — a failed restore leaves the
+   * session inactive and the next `webId` / `fetch` call triggers the popup.
+   * Use this callback to surface a "your session could not be restored"
+   * message in the UI.
+   */
+  onRestoreError?: (err: unknown) => void;
 }
 
 export interface ReactiveFetch {
   readonly webId: Promise<string>;
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+  /**
+   * Resolves when the construction-time restore attempt settles (success OR
+   * swallowed failure). Never rejects — failures are exposed via the
+   * `onRestoreError` option at construction time. Use this to render a
+   * loading state over the 100–500ms restore window before deciding whether
+   * to offer a login button or show an already-signed-in state.
+   */
+  readonly restorePromise: Promise<void>;
 }
 
 /**
@@ -32,14 +54,23 @@ export interface ReactiveFetch {
  * @throws if invoked outside a browser (no `window` or no `indexedDB`).
  */
 export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetch {
-  const { clientId, callbackUrl } = options;
+  const { clientId, callbackUrl, onRestoreError } = options;
   const { session } = createSessionBootstrap(clientId);
 
   // Attempt to restore any session persisted in IndexedDB before any path
   // could decide to open a popup. Swallowed at construction so a missing
   // or invalid refresh token doesn't make the factory unusable; isActive
-  // stays false and the login popup will run on first demand.
-  const restorePromise = ensureRestored(session).catch(() => undefined);
+  // stays false and the login popup will run on first demand. Failures are
+  // surfaced to the app via onRestoreError if provided.
+  const restorePromise: Promise<void> = ensureRestored(session).catch(
+    (err: unknown) => {
+      try {
+        onRestoreError?.(err);
+      } catch {
+        /* consumer callback must not break the factory */
+      }
+    },
+  );
 
   let loginPromise: Promise<string> | null = null;
 
@@ -56,10 +87,7 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     // Slow path: open the popup synchronously from this call stack.
     // Any `await` before `window.open` burns the user-gesture budget and
     // Chromium's popup blocker refuses the request — which is exactly
-    // what the prior shape (`await restorePromise` first) hit in e2e.
-    // Trade-off: if restorePromise was about to succeed, we briefly open
-    // a redundant popup. Acceptable — any shape that defers window.open
-    // past an await cannot work in strict popup-blocker browsers.
+    // what a prior shape (`await restorePromise` first) hit in e2e.
     const popupPromise = openLoginPopup({ callbackUrl });
 
     const pending: Promise<string> = (async () => {
@@ -70,7 +98,7 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
         // page-load may be stale, so we skip the dedup WeakMap here.
         await ensureRestored(session, true);
         if (!session.isActive || !session.webId) {
-          throw new Error('Session did not become active after login.');
+          throw new SessionRestoreFailedError();
         }
         return session.webId;
       } finally {
@@ -85,6 +113,9 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
   const rf: ReactiveFetch = {
     get webId() {
       return ensureLoggedIn();
+    },
+    get restorePromise() {
+      return restorePromise;
     },
     async fetch(input, init) {
       if (session.isActive) {
