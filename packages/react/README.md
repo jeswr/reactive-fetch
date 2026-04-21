@@ -4,6 +4,9 @@
 [![npm version](https://img.shields.io/npm/v/@jeswr/solid-reactive-fetch-react)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch-react)
 [![npm downloads](https://img.shields.io/npm/dw/@jeswr/solid-reactive-fetch-react)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch-react)
 
+> [!WARNING]
+> **This package has NOT been independently security reviewed.** It is published for **testing and evaluation purposes only** and should not be used to protect production user data. The public API, storage format, and security guarantees may change without notice. Use at your own risk.
+
 React hooks layered on top of [`@jeswr/solid-reactive-fetch`](../core).
 
 **Live demo**: <https://jeswr.github.io/reactive-fetch/react/>

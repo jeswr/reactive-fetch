@@ -4,6 +4,9 @@
 [![npm version](https://img.shields.io/npm/v/@jeswr/solid-reactive-fetch)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch)
 [![npm downloads](https://img.shields.io/npm/dw/@jeswr/solid-reactive-fetch)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch)
 
+> [!WARNING]
+> **This package has NOT been independently security reviewed.** It is published for **testing and evaluation purposes only** and should not be used to protect production user data. The public API, storage format, and security guarantees may change without notice. Use at your own risk.
+
 Reactive authenticated `fetch` for Solid applications. Authentication is triggered automatically — no explicit `login()` or `logout()`.
 
 **Live demo**: <https://jeswr.github.io/reactive-fetch/>
