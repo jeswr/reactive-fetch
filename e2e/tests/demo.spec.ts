@@ -14,6 +14,9 @@
  * puts the final recording at the requested ~30–45 seconds.
  */
 
+import { writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test, expect } from '../fixtures/test.js';
 import {
   driveCallbackWebIdPrompt,
@@ -22,6 +25,8 @@ import {
 } from '../fixtures/login.js';
 import { putAcl, putResource } from '../fixtures/css-admin.js';
 import { ALICE, CSS_URL, SEL } from '../fixtures/constants.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // The vanilla-ts example hard-codes this URL for the "Fetch private resource"
 // button. We seed it on-the-fly with an alice-only ACL so unauthenticated
@@ -54,6 +59,13 @@ test.describe('demo', () => {
     await putResource(aliceFetcher, DEMO_PRIVATE_URL, DEMO_PRIVATE_BODY, 'text/plain');
     await putAcl(aliceFetcher, DEMO_PRIVATE_URL, aliceOnlyAcl(DEMO_PRIVATE_URL, ALICE.webId));
 
+    // Capture timings so scripts/demo-record.mjs can align the popup track
+    // with the opener track when compositing side-by-side. All values are
+    // seconds relative to `t0` (which is ~= the start of the opener's video).
+    const t0 = Date.now();
+    let popupOpenedAt = 0;
+    let popupClosedAt = 0;
+
     // 1. Load the app.
     await page.goto('/');
     await page.locator(SEL.showWebIdBtn).waitFor({ state: 'visible' });
@@ -63,6 +75,7 @@ test.describe('demo', () => {
     const popupPromise = context.waitForEvent('page', { timeout: 15_000 });
     await page.locator(SEL.showWebIdBtn).click();
     const popup = await popupPromise;
+    popupOpenedAt = (Date.now() - t0) / 1000;
 
     // 3. reactive-fetch's WebID prompt.
     await driveCallbackWebIdPrompt(popup, ALICE.webId);
@@ -77,6 +90,7 @@ test.describe('demo', () => {
 
     // 6. Popup self-closes; WebID resolves in the opener.
     await popup.waitForEvent('close', { timeout: 20_000 }).catch(() => undefined);
+    popupClosedAt = (Date.now() - t0) / 1000;
     await expect(page.locator(SEL.webIdDisplay)).toHaveText(ALICE.webId, { timeout: 20_000 });
     await highlight(2_000);
 
@@ -87,5 +101,24 @@ test.describe('demo', () => {
     });
     // Let the viewer absorb the final result.
     await highlight(3_000);
+
+    // Write the timings where the record script can read them. Note: these
+    // are wall-clock measurements taken AFTER page.goto resolves; the real
+    // opener video probably starts ~50-100ms earlier (context creation), but
+    // a small fixed offset across both tracks doesn't break alignment — only
+    // the RELATIVE position of popup-within-opener matters for hstack.
+    const timingsPath = resolve(__dirname, '..', 'demo-output', 'timings.json');
+    writeFileSync(
+      timingsPath,
+      JSON.stringify(
+        {
+          popupOpenedAt,
+          popupClosedAt,
+          testEndedAt: (Date.now() - t0) / 1000,
+        },
+        null,
+        2,
+      ),
+    );
   });
 });

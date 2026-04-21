@@ -12,6 +12,19 @@ import {
 export interface MountCallbackOptions {
   root?: HTMLElement;
   clientId?: string;
+  /**
+   * Accept `http://localhost` / `127.0.0.1` / `[::1]` as valid OIDC issuers
+   * in addition to HTTPS. Defaults to `false` — a WebID profile declaring a
+   * localhost issuer is rejected with `InvalidIssuerError`, preventing a
+   * hostile profile from redirecting a user's popup at a local port.
+   *
+   * Set to `true` only in local dev builds. This flag MUST match the
+   * `allowLocalhost` passed to `createReactiveFetch` in the parent app;
+   * otherwise the parent-vs-popup view of which issuers are acceptable will
+   * diverge (practically harmless — the parent's flag is informational
+   * today — but the two sides are meant to be kept in sync).
+   */
+  allowLocalhost?: boolean;
 }
 
 export async function mountCallback(options: MountCallbackOptions = {}): Promise<void> {
@@ -69,7 +82,9 @@ function showWebIdForm(options: MountCallbackOptions, seedValue?: string): void 
 
     let issuers: string[];
     try {
-      issuers = await resolveOidcIssuers(webId.toString());
+      issuers = await resolveOidcIssuers(webId.toString(), {
+        allowLocalhost: options.allowLocalhost ?? false,
+      });
     } catch (err) {
       ui.setBusy(false);
       ui.setStatus(describeError(err), 'error');
