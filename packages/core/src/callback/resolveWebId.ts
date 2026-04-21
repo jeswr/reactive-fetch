@@ -85,11 +85,6 @@ export async function resolveOidcIssuers(webIdUrl: string): Promise<string[]> {
   return issuers;
 }
 
-export async function resolveOidcIssuer(webIdUrl: string): Promise<string> {
-  const issuers = await resolveOidcIssuers(webIdUrl);
-  return issuers[0]!;
-}
-
 function parseTurtle(body: string, format: string, baseIRI: string): Quad[] {
   const parser = new N3Parser({ format, baseIRI });
   return parser.parse(body);
@@ -97,12 +92,12 @@ function parseTurtle(body: string, format: string, baseIRI: string): Quad[] {
 
 async function parseWithRdfParse(
   body: string,
-  contentType: string,
+  mediaType: string,
   baseIRI: string,
 ): Promise<Quad[]> {
   const input = Readable.from([body]);
   const quadStream = rdfParser.parse(input as unknown as NodeJS.ReadableStream, {
-    contentType,
+    contentType: mediaType,
     baseIRI,
   });
 
