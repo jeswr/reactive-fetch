@@ -1,0 +1,63 @@
+{
+  "name": "@jeswr/solid-reactive-fetch",
+  "version": "0.0.0",
+  "description": "Reactive authenticated fetch for Solid applications — auth is triggered automatically by 401s and webId reads, via a popup flow",
+  "license": "MIT",
+  "author": "Jesse Wright",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeswr/reactive-fetch.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/jeswr/reactive-fetch/tree/main/packages/core",
+  "bugs": "https://github.com/jeswr/reactive-fetch/issues",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./callback": {
+      "types": "./dist/callback/index.d.ts",
+      "import": "./dist/callback/index.js",
+      "default": "./dist/callback/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@uvdsl/solid-oidc-client-browser": "^0.2.0"
+  },
+  "keywords": [
+    "solid",
+    "solid-oidc",
+    "oidc",
+    "dpop",
+    "authentication",
+    "fetch",
+    "reactive",
+    "webid",
+    "popup"
+  ],
+  "devDependencies": {
+    "@uvdsl/solid-oidc-client-browser": "^0.2.2"
+  }
+}

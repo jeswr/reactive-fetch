@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.vitest
+.turbo
+.tsbuildinfo
+*.tsbuildinfo
+.DS_Store
+.env
+.env.local
+*.log
+.pnpm-store
+.claude/settings.local.json

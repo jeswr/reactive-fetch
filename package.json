@@ -1,0 +1,36 @@
+{
+  "name": "@jeswr/solid-reactive-fetch-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Monorepo for @jeswr/solid-reactive-fetch and related packages",
+  "license": "MIT",
+  "author": "Jesse Wright",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeswr/reactive-fetch.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.4.1",
+  "scripts": {
+    "build": "pnpm --filter './packages/*' -r build",
+    "dev": "pnpm --filter './packages/*' -r --parallel dev",
+    "test": "pnpm --filter './packages/*' -r test",
+    "test:watch": "pnpm --filter './packages/*' -r --parallel test:watch",
+    "typecheck": "pnpm --filter './packages/*' -r typecheck",
+    "clean": "pnpm --filter './packages/*' -r clean && rimraf node_modules",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "rimraf": "^6.1.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4"
+  }
+}
