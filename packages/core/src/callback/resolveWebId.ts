@@ -104,7 +104,10 @@ export async function resolveOidcIssuers(webIdUrl: string): Promise<string[]> {
 }
 
 // An OIDC issuer MUST be an absolute HTTPS URL (OIDC Discovery §2). We also
-// accept http://localhost and http://127.0.0.1 for local dev workflows.
+// accept http:// for the three loopback forms so local dev (Community Solid
+// Server, ESS dev cluster, etc.) can run without a TLS cert. `hostname`
+// returns IPv6 addresses bracketed per the WHATWG URL spec, so we compare
+// against the bracketed form.
 function isAllowedIssuer(issuer: string): boolean {
   let url: URL;
   try {
@@ -114,7 +117,11 @@ function isAllowedIssuer(issuer: string): boolean {
   }
   if (url.protocol === 'https:') return true;
   if (url.protocol === 'http:') {
-    return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    return (
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '[::1]'
+    );
   }
   return false;
 }

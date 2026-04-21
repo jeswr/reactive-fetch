@@ -99,4 +99,27 @@ describe('resolveOidcIssuers', () => {
     const issuers = await resolveOidcIssuers('https://example.com/profile#me');
     expect(issuers).toEqual(['http://localhost:3000/']);
   });
+
+  test('accepts http://[::1] (IPv6 loopback) for dev workflows', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <http://[::1]:3000/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const issuers = await resolveOidcIssuers('https://example.com/profile#me');
+    expect(issuers).toEqual(['http://[::1]:3000/']);
+  });
+
+  test('rejects http://example.com (non-loopback plaintext) with InvalidIssuerError', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <http://example.com/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    await expect(
+      resolveOidcIssuers('https://example.com/profile#me'),
+    ).rejects.toBeInstanceOf(InvalidIssuerError);
+  });
 });
