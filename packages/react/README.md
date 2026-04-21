@@ -6,6 +6,8 @@
 
 React hooks layered on top of [`@jeswr/solid-reactive-fetch`](../core).
 
+**Live demo**: <https://jeswr.github.io/reactive-fetch/react/>
+
 ```tsx
 import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
 import { ReactiveFetchProvider, useWebId, useSolidFetch } from '@jeswr/solid-reactive-fetch-react';
