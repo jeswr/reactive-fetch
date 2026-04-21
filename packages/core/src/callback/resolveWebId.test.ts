@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { InvalidIssuerError, NoOidcIssuerError, WebIdProfileError } from '../errors.js';
-import { resolveOidcIssuers } from './resolveWebId.js';
+import { resolveOidcIssuers, resolveWebIdProfile } from './resolveWebId.js';
 
 const TURTLE_HEADERS = { 'content-type': 'text/turtle' };
 
@@ -243,5 +243,117 @@ describe('resolveOidcIssuers: JSON-LD profile path', () => {
     await expect(
       resolveOidcIssuers('https://alice.example/profile#me'),
     ).rejects.toBeInstanceOf(WebIdProfileError);
+  });
+});
+
+describe('resolveWebIdProfile: display name + photo harvest', () => {
+  const realFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  test('returns vcard:fn as the display name when both vcard:fn and foaf:name are set', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      @prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+      @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+      <https://example.com/profile#me>
+        solid:oidcIssuer <https://idp.example.com/> ;
+        vcard:fn "Alice (formal)" ;
+        foaf:name "Alice (foaf)" .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const profile = await resolveWebIdProfile('https://example.com/profile#me');
+    expect(profile).toEqual({
+      issuers: ['https://idp.example.com/'],
+      name: 'Alice (formal)',
+    });
+  });
+
+  test('falls back to foaf:name when vcard:fn is absent', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+      <https://example.com/profile#me>
+        solid:oidcIssuer <https://idp.example.com/> ;
+        foaf:name "Alice" .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const profile = await resolveWebIdProfile('https://example.com/profile#me');
+    expect(profile.name).toBe('Alice');
+  });
+
+  test('omits name when neither vcard:fn nor foaf:name is present', async () => {
+    // Agent.name derives from the URL when both are absent, but resolveWebIdProfile
+    // deliberately drops that fallback so cached entries only hold real display names.
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <https://idp.example.com/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const profile = await resolveWebIdProfile('https://example.com/profile#me');
+    expect(profile.name).toBeUndefined();
+  });
+
+  test('harvests vcard:hasPhoto as photoUrl', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      @prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+      <https://example.com/profile#me>
+        solid:oidcIssuer <https://idp.example.com/> ;
+        vcard:hasPhoto <https://example.com/photo.jpg> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const profile = await resolveWebIdProfile('https://example.com/profile#me');
+    expect(profile.photoUrl).toBe('https://example.com/photo.jpg');
+  });
+
+  test('omits photoUrl when vcard:hasPhoto is absent', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <https://idp.example.com/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const profile = await resolveWebIdProfile('https://example.com/profile#me');
+    expect(profile.photoUrl).toBeUndefined();
+  });
+
+  test('returns full profile shape: issuers + name + photoUrl together', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      @prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+      <https://example.com/profile#me>
+        solid:oidcIssuer <https://idp.example.com/> ;
+        vcard:fn "Alice" ;
+        vcard:hasPhoto <https://example.com/photo.jpg> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const profile = await resolveWebIdProfile('https://example.com/profile#me');
+    expect(profile).toEqual({
+      issuers: ['https://idp.example.com/'],
+      name: 'Alice',
+      photoUrl: 'https://example.com/photo.jpg',
+    });
+  });
+
+  test('resolveOidcIssuers remains a thin wrapper that returns the issuer array only', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      @prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+      <https://example.com/profile#me>
+        solid:oidcIssuer <https://idp.example.com/> ;
+        vcard:fn "Alice" .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const issuers = await resolveOidcIssuers('https://example.com/profile#me');
+    expect(issuers).toEqual(['https://idp.example.com/']);
   });
 });

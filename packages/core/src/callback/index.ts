@@ -1,12 +1,19 @@
 import { Session } from '@uvdsl/solid-oidc-client-browser';
 import { LoginFailedError, ReactiveFetchError } from '../errors.js';
 import { LOGIN_COMPLETE_MESSAGE_TYPE } from '../popup.js';
-import { resolveOidcIssuers } from './resolveWebId.js';
+import { resolveWebIdProfile, type WebIdProfile } from './resolveWebId.js';
+import {
+  forgetWebId,
+  getCachedWebIds,
+  rememberWebId,
+  type CachedWebId,
+} from './webidCache.js';
 import {
   IssuerPickerCancelled,
+  renderCachedWebIdsList,
   renderIssuerPicker,
   renderPromptUi,
-  type PromptUi,
+  type CachedWebIdsUi,
 } from './ui.js';
 
 export interface MountCallbackOptions {
@@ -34,6 +41,12 @@ export async function mountCallback(options: MountCallbackOptions = {}): Promise
     return;
   }
 
+  const cached = getCachedWebIds();
+  if (cached.length > 0) {
+    showCachedList(options, cached);
+    return;
+  }
+
   showWebIdForm(options);
 }
 
@@ -53,6 +66,44 @@ async function handleRedirect(clientId?: string): Promise<void> {
     );
   }
   window.close();
+}
+
+function showCachedList(
+  options: MountCallbackOptions,
+  entries: CachedWebId[],
+): void {
+  const parent = options.root ?? document.body;
+  let ui: CachedWebIdsUi | null = null;
+
+  ui = renderCachedWebIdsList(parent, entries, {
+    onPick: (webId) => {
+      ui?.setBusy(true);
+      ui?.setStatus('Looking up your identity provider…');
+      void driveLoginFromWebId(options, parent, webId, () => {
+        ui?.dispose();
+        ui = null;
+      }, (message) => {
+        ui?.setBusy(false);
+        ui?.setStatus(message, 'error');
+      });
+    },
+    onForget: (webId) => {
+      forgetWebId(webId);
+      const remaining = getCachedWebIds();
+      ui?.dispose();
+      ui = null;
+      if (remaining.length > 0) {
+        showCachedList(options, remaining);
+      } else {
+        showWebIdForm(options);
+      }
+    },
+    onUseDifferent: () => {
+      ui?.dispose();
+      ui = null;
+      showWebIdForm(options);
+    },
+  });
 }
 
 function showWebIdForm(options: MountCallbackOptions, seedValue?: string): void {
@@ -80,25 +131,65 @@ function showWebIdForm(options: MountCallbackOptions, seedValue?: string): void 
     ui.setBusy(true);
     ui.setStatus('Looking up your identity provider…');
 
-    let issuers: string[];
-    try {
-      issuers = await resolveOidcIssuers(webId.toString(), {
-        allowLocalhost: options.allowLocalhost ?? false,
-      });
-    } catch (err) {
-      ui.setBusy(false);
-      ui.setStatus(describeError(err), 'error');
-      return;
-    }
-
-    if (issuers.length === 1) {
-      await startLogin(ui, options, issuers[0]!);
-      return;
-    }
-
-    ui.dispose();
-    await showIssuerPicker(options, parent, raw, issuers);
+    await driveLoginFromWebId(
+      options,
+      parent,
+      webId.toString(),
+      () => { ui.dispose(); },
+      (message) => {
+        ui.setBusy(false);
+        ui.setStatus(message, 'error');
+      },
+    );
   });
+}
+
+// Shared flow for the "we have a WebID, resolve its profile and either log
+// in directly (single issuer) or show the picker (multiple issuers)".
+// Used by both the cached-card click path and the manual-input submit path.
+async function driveLoginFromWebId(
+  options: MountCallbackOptions,
+  parent: HTMLElement,
+  webId: string,
+  onLoginStart: () => void,
+  onError: (message: string) => void,
+): Promise<void> {
+  let profile: WebIdProfile;
+  try {
+    profile = await resolveWebIdProfile(webId, {
+      allowLocalhost: options.allowLocalhost ?? false,
+    });
+  } catch (err) {
+    onError(describeError(err));
+    return;
+  }
+
+  // Remember the WebID now, before the IDP redirect. If the user aborts the
+  // IDP step they can still use the cached entry next time; they can also
+  // forget it. Name + photo come from the profile fetch so the cache renders
+  // without re-fetching.
+  rememberWebId({
+    webId,
+    ...(profile.name !== undefined && { name: profile.name }),
+    ...(profile.photoUrl !== undefined && { photoUrl: profile.photoUrl }),
+  });
+
+  if (profile.issuers.length === 1) {
+    onLoginStart();
+    try {
+      await beginSolidLogin(options, profile.issuers[0]!);
+    } catch (err) {
+      // Login start itself failed (rare — the IDP redirect is imperative);
+      // we've already removed the previous UI so surface to the cached view.
+      showCachedList(options, getCachedWebIds());
+      // Schedule the status after the fresh UI has rendered.
+      queueMicrotask(() => onError(describeError(err)));
+    }
+    return;
+  }
+
+  onLoginStart();
+  await showIssuerPicker(options, parent, webId, profile.issuers);
 }
 
 async function showIssuerPicker(
@@ -115,7 +206,14 @@ async function showIssuerPicker(
   } catch (err) {
     picker.dispose();
     if (err instanceof IssuerPickerCancelled) {
-      showWebIdForm(options, webIdValue);
+      // Re-render the most appropriate starting view — cached list if any,
+      // else the input seeded with whatever WebID the user just came from.
+      const remaining = getCachedWebIds();
+      if (remaining.length > 0) {
+        showCachedList(options, remaining);
+      } else {
+        showWebIdForm(options, webIdValue);
+      }
       return;
     }
     throw err;
@@ -128,19 +226,6 @@ async function showIssuerPicker(
   } catch (err) {
     picker.setBusy(false);
     picker.setStatus(describeError(err), 'error');
-  }
-}
-
-async function startLogin(
-  ui: PromptUi,
-  options: MountCallbackOptions,
-  issuer: string,
-): Promise<void> {
-  try {
-    await beginSolidLogin(options, issuer);
-  } catch (err) {
-    ui.setBusy(false);
-    ui.setStatus(describeError(err), 'error');
   }
 }
 

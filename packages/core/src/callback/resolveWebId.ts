@@ -40,10 +40,22 @@ export interface ResolveOidcIssuersOptions {
   allowLocalhost?: boolean;
 }
 
-export async function resolveOidcIssuers(
+export interface WebIdProfile {
+  /** Issuer URLs that passed the HTTPS (+ optional localhost) filter. */
+  issuers: string[];
+  /**
+   * Display name from the profile (VCARD.fn → FOAF.name → derived from the
+   * URL). Undefined if the profile contained none of these.
+   */
+  name?: string;
+  /** VCARD.hasPhoto URL if present. */
+  photoUrl?: string;
+}
+
+export async function resolveWebIdProfile(
   webIdUrl: string,
   options: ResolveOidcIssuersOptions = {},
-): Promise<string[]> {
+): Promise<WebIdProfile> {
   const allowLocalhost = options.allowLocalhost ?? false;
   let response: Response;
   try {
@@ -116,7 +128,30 @@ export async function resolveOidcIssuers(
       `WebID ${webIdUrl} declared ${rawIssuers.length} solid:oidcIssuer value(s), none of which are valid ${allowLocalhost ? 'HTTPS or localhost HTTP' : 'HTTPS'} URLs: ${rawIssuers.join(', ')}.`,
     );
   }
-  return issuers;
+
+  // @solid/object's Agent resolves `.name` through vcardFn → foafName →
+  // URL-derived, and defaults to a URL-derived string rather than null; we
+  // drop the URL-derived fallback so the cache only stores real display
+  // names. `.photoUrl` reads VCARD.hasPhoto and returns null when absent.
+  const derivedName = deriveRealName(agent);
+  const photoUrl = agent.photoUrl ?? undefined;
+  return {
+    issuers,
+    ...(derivedName !== undefined && { name: derivedName }),
+    ...(photoUrl !== undefined && { photoUrl }),
+  };
+}
+
+export async function resolveOidcIssuers(
+  webIdUrl: string,
+  options: ResolveOidcIssuersOptions = {},
+): Promise<string[]> {
+  const profile = await resolveWebIdProfile(webIdUrl, options);
+  return profile.issuers;
+}
+
+function deriveRealName(agent: WebIdAgent): string | undefined {
+  return agent.vcardFn ?? agent.foafName ?? undefined;
 }
 
 // An OIDC issuer MUST be an absolute HTTPS URL (OIDC Discovery §2). With
