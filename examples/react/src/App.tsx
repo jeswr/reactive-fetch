@@ -1,7 +1,9 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSolidFetch, useWebId } from '@jeswr/solid-reactive-fetch-react';
 
 const PRIVATE_RESOURCE_URL = 'http://localhost:3000/alice/private.txt';
+
+type StatusKind = 'idle' | 'loading' | 'ok' | 'error';
 
 function WebIdBadge() {
   const webId = useWebId();
@@ -34,26 +36,27 @@ function ShowWebIdSection() {
 
 function FetchPrivateSection() {
   const solidFetch = useSolidFetch();
-  const [status, setStatus] = useState<{ text: string; error?: boolean }>({
+  const [status, setStatus] = useState<{ text: string; kind: StatusKind }>({
     text: 'Idle.',
+    kind: 'idle',
   });
   const [body, setBody] = useState<string>('(no output yet)');
   const [busy, setBusy] = useState(false);
 
   const onClick = async () => {
     setBusy(true);
-    setStatus({ text: `Fetching ${PRIVATE_RESOURCE_URL}…` });
+    setStatus({ text: `Fetching ${PRIVATE_RESOURCE_URL}…`, kind: 'loading' });
     try {
       const response = await solidFetch(PRIVATE_RESOURCE_URL);
       const text = await response.text();
       setStatus({
         text: `${response.status} ${response.statusText} — ${PRIVATE_RESOURCE_URL}`,
+        kind: response.ok ? 'ok' : 'error',
       });
       setBody(text || '(empty body)');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setStatus({ text: message, error: true });
-      setBody(message);
+      setStatus({ text: message, kind: 'error' });
     } finally {
       setBusy(false);
     }
@@ -69,11 +72,7 @@ function FetchPrivateSection() {
       >
         Fetch private resource from my pod
       </button>
-      <div
-        className="status"
-        data-testid="status"
-        {...(status.error ? { 'data-status': 'error' } : {})}
-      >
+      <div className="status" data-testid="status" data-status={status.kind}>
         {status.text}
       </div>
       <pre data-testid="result">{body}</pre>
@@ -82,6 +81,16 @@ function FetchPrivateSection() {
 }
 
 export function App() {
+  // Hydration marker: once `<App />` has mounted, the provider is live and
+  // the hooks are ready to be used. Gives Playwright (and any harness) a
+  // deterministic signal on `[data-testid="ready"]` without timers.
+  useEffect(() => {
+    document.body.dataset.testid = 'ready';
+    return () => {
+      delete document.body.dataset.testid;
+    };
+  }, []);
+
   return (
     <>
       <h1>reactive-fetch React example</h1>

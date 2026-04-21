@@ -13,13 +13,11 @@ const webIdDisplayEl = document.getElementById('webid-display') as HTMLElement;
 const showWebIdBtn = document.getElementById('show-webid') as HTMLButtonElement;
 const fetchPrivateBtn = document.getElementById('fetch-private') as HTMLButtonElement;
 
-function setStatus(text: string, kind: 'ok' | 'error' = 'ok'): void {
+type StatusKind = 'idle' | 'loading' | 'ok' | 'error';
+
+function setStatus(text: string, kind: StatusKind): void {
   statusEl.textContent = text;
-  if (kind === 'error') {
-    statusEl.dataset.status = 'error';
-  } else {
-    delete statusEl.dataset.status;
-  }
+  statusEl.dataset.status = kind;
 }
 
 function setOutput(text: string): void {
@@ -38,7 +36,6 @@ async function withButtons<T>(fn: () => Promise<T>): Promise<T | undefined> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     setStatus(message, 'error');
-    setOutput(message);
     return undefined;
   } finally {
     showWebIdBtn.disabled = false;
@@ -48,20 +45,22 @@ async function withButtons<T>(fn: () => Promise<T>): Promise<T | undefined> {
 
 showWebIdBtn.addEventListener('click', () => {
   void withButtons(async () => {
-    setStatus('Resolving WebID…');
+    setStatus('Resolving WebID…', 'loading');
     const webId = await rf.webId;
     setWebId(webId);
-    setStatus('Signed in.');
-    setOutput(webId);
+    setStatus('Signed in.', 'ok');
   });
 });
 
 fetchPrivateBtn.addEventListener('click', () => {
   void withButtons(async () => {
-    setStatus(`Fetching ${PRIVATE_RESOURCE_URL}…`);
+    setStatus(`Fetching ${PRIVATE_RESOURCE_URL}…`, 'loading');
     const response = await rf.fetch(PRIVATE_RESOURCE_URL);
     const body = await response.text();
-    setStatus(`${response.status} ${response.statusText} — ${PRIVATE_RESOURCE_URL}`);
+    setStatus(
+      `${response.status} ${response.statusText} — ${PRIVATE_RESOURCE_URL}`,
+      response.ok ? 'ok' : 'error',
+    );
     setOutput(body || '(empty body)');
 
     // The reactive fetch logs the user in by the time we reach this point
@@ -76,7 +75,8 @@ fetchPrivateBtn.addEventListener('click', () => {
   });
 });
 
-// Hydration marker: signals to Playwright (and any harness) that the app has
-// wired up its event listeners and createReactiveFetch has been invoked,
-// so tests can wait on a deterministic DOM flag instead of timers.
+// Hydration marker: the app has wired its listeners and createReactiveFetch
+// has been invoked, so harnesses can gate on a deterministic DOM signal
+// (`[data-testid="ready"]`) instead of timers.
+document.body.dataset.testid = 'ready';
 document.body.dataset.rfReady = 'true';
