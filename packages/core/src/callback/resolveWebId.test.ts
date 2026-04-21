@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { InvalidIssuerError, NoOidcIssuerError } from '../errors.js';
+import { InvalidIssuerError, NoOidcIssuerError, WebIdProfileError } from '../errors.js';
 import { resolveOidcIssuers } from './resolveWebId.js';
 
 const TURTLE_HEADERS = { 'content-type': 'text/turtle' };
@@ -121,5 +121,67 @@ describe('resolveOidcIssuers', () => {
     await expect(
       resolveOidcIssuers('https://example.com/profile#me'),
     ).rejects.toBeInstanceOf(InvalidIssuerError);
+  });
+});
+
+describe('resolveOidcIssuers: JSON-LD profile path', () => {
+  const realFetch = globalThis.fetch;
+  const JSON_LD_HEADERS = { 'content-type': 'application/ld+json' };
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  test('extracts single solid:oidcIssuer from a JSON-LD profile', async () => {
+    const body = JSON.stringify({
+      '@context': { solid: 'http://www.w3.org/ns/solid/terms#' },
+      '@id': 'https://alice.example/profile#me',
+      'solid:oidcIssuer': { '@id': 'https://idp.example.com/' },
+    });
+    globalThis.fetch = mockFetchWith(body, JSON_LD_HEADERS);
+
+    const issuers = await resolveOidcIssuers('https://alice.example/profile#me');
+    expect(issuers).toEqual(['https://idp.example.com/']);
+  });
+
+  test('returns all issuers from a multi-issuer JSON-LD profile', async () => {
+    const body = JSON.stringify({
+      '@context': { solid: 'http://www.w3.org/ns/solid/terms#' },
+      '@id': 'https://alice.example/profile#me',
+      'solid:oidcIssuer': [
+        { '@id': 'https://idp-a.example.com/' },
+        { '@id': 'https://idp-b.example.com/' },
+      ],
+    });
+    globalThis.fetch = mockFetchWith(body, JSON_LD_HEADERS);
+
+    const issuers = await resolveOidcIssuers('https://alice.example/profile#me');
+    expect([...issuers].sort()).toEqual([
+      'https://idp-a.example.com/',
+      'https://idp-b.example.com/',
+    ]);
+  });
+
+  test('selects JSON-LD branch on application/ld+json Content-Type even with charset param', async () => {
+    const body = JSON.stringify({
+      '@context': { solid: 'http://www.w3.org/ns/solid/terms#' },
+      '@id': 'https://alice.example/profile#me',
+      'solid:oidcIssuer': { '@id': 'https://idp.example.com/' },
+    });
+    globalThis.fetch = mockFetchWith(body, {
+      'content-type': 'application/ld+json;charset=utf-8',
+    });
+
+    const issuers = await resolveOidcIssuers('https://alice.example/profile#me');
+    expect(issuers).toEqual(['https://idp.example.com/']);
+  });
+
+  test('malformed JSON-LD body surfaces WebIdProfileError', async () => {
+    const body = '{ "@context": {"solid": "http://www.w3.org/ns/solid/terms#"';
+    globalThis.fetch = mockFetchWith(body, JSON_LD_HEADERS);
+
+    await expect(
+      resolveOidcIssuers('https://alice.example/profile#me'),
+    ).rejects.toBeInstanceOf(WebIdProfileError);
   });
 });
