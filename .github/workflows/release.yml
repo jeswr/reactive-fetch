@@ -33,7 +33,7 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           persist-credentials: true
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.4.1
           run_install: false
