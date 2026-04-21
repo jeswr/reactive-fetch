@@ -25,8 +25,10 @@ That single command:
    | alice | `http://localhost:3000/alice/profile/card#me` | `alice@example.com` | `password123` |
    | bob   | `http://localhost:3000/bob/profile/card#me`   | `bob@example.com`   | `password123` |
 
-3. Starts the `vanilla-ts` example dev server on `http://localhost:5173`.
-4. Prints the URLs + credentials, then opens the browser.
+3. Starts both example dev servers:
+   - `vanilla-ts` on `http://localhost:5173`
+   - `react` on `http://localhost:5174`
+4. Prints the URLs + credentials, then opens the browser to `vanilla-ts`.
 5. Tears everything down cleanly on `Ctrl+C`.
 
 ### Trying it out
@@ -81,6 +83,7 @@ belongs to that server in the popup.
 
 - [`vanilla-ts/`](./vanilla-ts) — minimal HTML + TypeScript + Vite demo.
   Two buttons: _Show my WebID_ and _Fetch private resource_.
-
-A React example may land later; for now the vanilla-ts demo is the
-authoritative reference for how to wire the library into an app.
+- [`react/`](./react) — Vite + React 19 demo using
+  [`@jeswr/solid-reactive-fetch-react`](../packages/react). Wraps the app in
+  `<ReactiveFetchProvider>`, uses `useWebId()` inside a `<Suspense>` boundary,
+  and calls `useSolidFetch()` for authenticated requests.

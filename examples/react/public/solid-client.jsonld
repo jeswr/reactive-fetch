@@ -1,0 +1,11 @@
+{
+  "@context": "https://www.w3.org/ns/solid/oidc-context.jsonld",
+  "client_id": "http://localhost:5174/solid-client.jsonld",
+  "client_name": "reactive-fetch React example",
+  "redirect_uris": ["http://localhost:5174/callback.html"],
+  "post_logout_redirect_uris": ["http://localhost:5174/"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "scope": "openid webid offline_access",
+  "token_endpoint_auth_method": "none"
+}

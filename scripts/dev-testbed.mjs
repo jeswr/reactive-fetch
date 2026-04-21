@@ -5,9 +5,11 @@
  * Starts:
  *   - Community Solid Server on http://localhost:3000 (seeded with alice + bob)
  *   - The vanilla-ts example dev server on http://localhost:5173
+ *   - The React example dev server on http://localhost:5174
  *
- * Waits for both to be reachable, prints a banner with credentials + URLs,
- * opens the browser, and tears everything down on SIGINT/SIGTERM.
+ * Waits for all three to be reachable, prints a banner with credentials +
+ * URLs, opens the browser to vanilla-ts, and tears everything down on
+ * SIGINT/SIGTERM.
  */
 
 import { spawn } from 'node:child_process';
@@ -27,6 +29,8 @@ const SEED_CONFIG = resolve(__dirname, 'seed.json');
 
 const VANILLA_PORT = 5173;
 const VANILLA_URL = `http://localhost:${VANILLA_PORT}`;
+const REACT_PORT = 5174;
+const REACT_URL = `http://localhost:${REACT_PORT}`;
 
 const children = [];
 let shuttingDown = false;
@@ -114,17 +118,17 @@ function startCss() {
   return child;
 }
 
-function startVanillaDev() {
+function startExampleDev(name, filter) {
   const child = spawn(
     'pnpm',
-    ['--filter', '@jeswr/example-vanilla-ts', 'dev'],
+    ['--filter', filter, 'dev'],
     {
       cwd: repoRoot,
       stdio: ['ignore', 'inherit', 'inherit'],
       env: { ...process.env },
     },
   );
-  registerChild('vanilla-ts', child);
+  registerChild(name, child);
   return child;
 }
 
@@ -138,7 +142,8 @@ function banner() {
     `   alice → WebID ${CSS_BASE}/alice/profile/card#me`,
     `   bob   → WebID ${CSS_BASE}/bob/profile/card#me`,
     rule,
-    ` Sample apps    → ${VANILLA_URL} (vanilla-ts)`,
+    ` Sample apps    → ${VANILLA_URL} (vanilla-ts, opens in browser)`,
+    `                 → ${REACT_URL} (react)`,
     rule,
     ' Opening browser… (Ctrl+C to stop everything)',
     '',
@@ -155,8 +160,13 @@ async function main() {
   });
 
   console.log(`Starting vanilla-ts dev server on ${VANILLA_URL}…`);
-  startVanillaDev();
-  await waitForHttp(VANILLA_URL, { timeoutMs: 60_000, label: 'vanilla-ts dev server' });
+  startExampleDev('vanilla-ts', '@jeswr/example-vanilla-ts');
+  console.log(`Starting React dev server on ${REACT_URL}…`);
+  startExampleDev('react', '@jeswr/example-react');
+  await Promise.all([
+    waitForHttp(VANILLA_URL, { timeoutMs: 60_000, label: 'vanilla-ts dev server' }),
+    waitForHttp(REACT_URL, { timeoutMs: 60_000, label: 'react dev server' }),
+  ]);
 
   console.log('\n' + banner());
   try {
