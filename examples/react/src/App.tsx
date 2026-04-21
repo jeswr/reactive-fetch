@@ -1,7 +1,14 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSolidFetch, useWebId } from '@jeswr/solid-reactive-fetch-react';
 
-const PRIVATE_RESOURCE_URL = 'http://localhost:3000/alice/private.txt';
+// See examples/vanilla-ts/src/main.ts for the rationale. In prod we hit a
+// static ACL-protected resource on the repo owner's pod so any visitor can
+// trigger a 401 regardless of which WebID they sign in with.
+const PRIVATE_RESOURCE_URL =
+  (import.meta.env.VITE_PRIVATE_RESOURCE_URL as string | undefined) ??
+  (import.meta.env.DEV
+    ? 'http://localhost:3000/alice/private.txt'
+    : 'https://storage.inrupt.com/da51cbc3-7d33-42f7-a741-630e8a5bfa92/extendedProfile');
 
 type StatusKind = 'idle' | 'loading' | 'ok' | 'error';
 

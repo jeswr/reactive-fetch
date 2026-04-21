@@ -7,7 +7,15 @@ const APP_URL = new URL(import.meta.env.BASE_URL, window.location.origin).href;
 const CLIENT_ID = `${APP_URL}solid-client.jsonld`;
 const CALLBACK_URL = `${APP_URL}callback.html`;
 
-const PRIVATE_RESOURCE_URL = 'http://localhost:3000/alice/private.txt';
+// In prod, hit a static ACL-protected resource on the repo owner's pod — any
+// visitor will get a 401 until they authenticate with any WebID (the resource
+// doesn't need to live on the pod of the WebID signing in). Override via
+// VITE_PRIVATE_RESOURCE_URL to test against your own pod or a local CSS.
+const PRIVATE_RESOURCE_URL =
+  (import.meta.env.VITE_PRIVATE_RESOURCE_URL as string | undefined) ??
+  (import.meta.env.DEV
+    ? 'http://localhost:3000/alice/private.txt'
+    : 'https://storage.inrupt.com/da51cbc3-7d33-42f7-a741-630e8a5bfa92/extendedProfile');
 
 // `allowLocalhost` opts the issuer filter into accepting http://localhost /
 // 127.0.0.1 / [::1] so local dev can run against a non-TLS CSS instance.
