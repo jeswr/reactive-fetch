@@ -47,8 +47,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build all packages
-        run: pnpm -r build
+      - name: Build publishable packages
+        # Use the root `build` script (packages/* only). Examples and e2e are
+        # private workspaces and are already ignored by --ignore-private-packages
+        # in the release step; building them here would just slow releases down
+        # and let a broken example block an otherwise-valid core/react publish.
+        run: pnpm build
 
       - name: Record pre-release SHA
         id: pre
