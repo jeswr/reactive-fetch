@@ -92,7 +92,14 @@ jobs:
           JSON
 
       - name: Configure Pages
+        # `enablement: true` auto-enables Pages on first run if the user
+        # hasn't flipped the repo Settings → Pages → Source to "GitHub
+        # Actions" yet. Silent no-op on subsequent runs once Pages is live.
+        # If auto-enablement is blocked by org policy, the user needs to
+        # flip the setting manually (see README "Deploying this repo").
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -110,3 +117,28 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Smoke-test deployed site
+        # After actions/deploy-pages reports success, verify every expected
+        # subpath actually returns 200. Fails the job if the CDN hasn't
+        # propagated or a route is missing — catches the failure mode where
+        # the deploy "succeeds" but the example subpaths aren't reachable
+        # (e.g. if the _site assembly dropped a directory).
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          # deploy-pages emits a trailing-slash URL; strip it so we can
+          # concatenate predictable subpaths.
+          base="${PAGE_URL%/}"
+          echo "Smoke-testing ${base}/"
+
+          # Give the CDN a moment to propagate before we start hitting it.
+          sleep 10
+
+          # --retry handles the occasional 502/504 during propagation.
+          for path in "/" "/vanilla-ts/" "/react/"; do
+            echo "  -> ${base}${path}"
+            curl -fsS --retry 5 --retry-delay 4 --retry-all-errors "${base}${path}" > /dev/null
+          done
+          echo "All Pages subpaths returned 200."
