@@ -27,11 +27,13 @@ Document this in the examples README. The local IDP lets the user log in without
 
 ## Consumer patterns to demonstrate
 
-- **Initialization**: `setClientId()` + any config before `login()`
-- **Reactivity**: subscribe to state changes; handle unsubscribe on component unmount
-- **Authed fetch**: the `fetch(url)` call is a drop-in replacement for `window.fetch`; the example should show both, side-by-side
-- **Logout flow**: session cleared, events fire, UI updates
+- **Initialization**: `createReactiveFetch({ clientId })` — single construction, no mutators afterwards
+- **Reactive WebID**: `await rf.webId` triggers the popup if no session is active; consumers don't call a separate login method
+- **Reactive fetch**: `rf.fetch(url)` tries unauthenticated first and retries with DPoP-bound auth on 401 — show a public fetch and a private fetch side-by-side, only the private one opens the popup
+- **Session restoration**: on reload of an authenticated tab, the session restores silently from IndexedDB — the example should make this visible (show WebID on load without clicking anything)
 - **SSR safety**: one example should be Next.js or Remix to prove the package doesn't break server bundles. Skip client-only code with `"use client"` or dynamic import.
+
+There is NO `login()`, `logout()`, `setClientId()`, or state-change-event subscription in the public API. Do not build examples that imply their existence.
 
 ## Coordination
 

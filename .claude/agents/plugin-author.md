@@ -62,6 +62,19 @@ const res = await rf.fetch("https://pod/...");    // retries with auth on 401
 - `src/callback/ui.ts` — the WebID prompt UI (plain DOM or lit-html — no framework dependency)
 - `src/errors.ts` — typed errors (`PopupClosedError`, `WebIdProfileError`, `NoOidcIssuerError`, etc.)
 
+### Libraries, not reinvention
+
+Before writing "simple" parsing/normalization/detection code, check npm (and `context7` MCP for current docs) for a dedicated library. Examples relevant to this project:
+
+- **Content-Type / Accept header parsing** → `content-type`, `accepts`, `media-typer`
+- **RDF parsing** → `n3` for Turtle (fast path), `rdf-parse` for other serializations, `@rdfjs/dataset` + `@rdfjs/wrapper` + `@solid/object` for object mapping
+- **JWT / DPoP** → `jose` (already transitive via `@uvdsl/solid-oidc-client-browser`)
+- **URL handling** → the WHATWG `URL` API is built-in; no need for `url-parse` etc.
+
+Inlining is only OK when the hand-rolled path is <5 lines AND has no spec-level edge cases. When in doubt, library. `security-reviewer` and `refactor-engineer` will both flag reinvention on review.
+
+**When you don't know a library's exact API, use the `context7` MCP** (`mcp__context7__resolve-library-id` → `mcp__context7__query-docs`). Do NOT guess method names. Do NOT use `@ts-expect-error` or `// @ts-ignore` to silence a "property does not exist" error — that's a hallucination flag, not a "TS is wrong" flag. If context7 doesn't resolve the question, SendMessage to team-lead.
+
 ### Known constraints to document in the README
 
 - WebID Profile Documents must be CORS-accessible for the popup to read `solid:oidcIssuer`. Most Solid IDPs comply, but this is worth flagging.

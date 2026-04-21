@@ -9,7 +9,10 @@ A **reactive** authenticated `fetch` for Solid applications. "Reactive" here mea
 ### Public API (minimal by design)
 
 ```ts
-const rf = createReactiveFetch({ clientId: "https://myapp.example/solid-client.jsonld" });
+const rf = createReactiveFetch({
+  clientId: "https://myapp.example/solid-client.jsonld",
+  callbackUrl: "https://myapp.example/reactive-fetch-callback",
+});
 
 // Promise-valued. Reading it reactively triggers the login popup if not yet authenticated.
 const webId: string = await rf.webId;
@@ -23,6 +26,7 @@ That is the entire surface:
 - **`rf.fetch(input, init?)`** — tries unauthenticated first (or with an already-restored session), retries with auth on a 401
 - **`rf.webId`** — a `Promise<string>` that resolves to the authenticated WebID. Reading it when no session is active triggers the login popup and resolves once auth completes. Multiple reads share the same pending Promise
 - **Init option `clientId`** — the hosted Client ID Document URI
+- **Init option `callbackUrl`** — the URL where the consumer has mounted `mountCallback()` from `@jeswr/solid-reactive-fetch/callback`. Must be served from the same origin as the app so IndexedDB is shared. This URL must also appear in the Client ID Document's `redirect_uris`
 
 ### Explicitly NOT in the API
 
@@ -69,16 +73,17 @@ When either `rf.fetch` gets a 401 or `rf.webId` is read with no active session:
 
 ## Agents (team roles)
 
-See `.claude/agents/` — four role-based teammates are defined, all running Opus 4.7. The intent is an agent **team** (not just sub-agents): each teammate owns a deliverable and coordinates via the shared task list and `SendMessage`.
+See `.claude/agents/` — five role-based teammates are defined, all running Opus 4.7. The intent is an agent **team** (not just sub-agents): each teammate owns a deliverable and coordinates via the shared task list and `SendMessage`.
 
-- `plugin-author` — owns `src/` (the core reactive-fetch package)
+- `plugin-author` — owns `src/` (net-new features in the core reactive-fetch package)
+- `refactor-engineer` — handles refactors, cleanup, roborev findings, dep upgrades; preserves behavior, improves shape. Runs in parallel with `plugin-author` so features and cleanup don't block each other
 - `sample-app-author` — owns `examples/` (vanilla, React, optional SSR demos + Client ID Document)
 - `test-infrastructure-engineer` — owns `test/`, vitest/MSW/Playwright config, CI workflows
 - `security-reviewer` — gatekeeper; reviews every auth-touching change, cannot be bypassed
 
 Agent teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) are enabled in `.claude/settings.json`.
 
-**Standard workflow**: `plugin-author` drafts a change → `test-infrastructure-engineer` validates it with tests → `security-reviewer` audits → `sample-app-author` updates demos if the public API changed.
+**Standard workflow**: `plugin-author` drafts a feature → `test-infrastructure-engineer` validates it with tests → `refactor-engineer` sweeps review feedback and style debt in parallel → `security-reviewer` audits → `sample-app-author` updates demos if the public API changed.
 
 ## Code review
 
