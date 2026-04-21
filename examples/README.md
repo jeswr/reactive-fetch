@@ -66,13 +66,27 @@ there to sign in.
 > document from a public HTTPS URL and update `CLIENT_ID` in `src/main.ts` and
 > `src/callback.ts`.
 
+## Starting only CSS
+
+If you want a long-running seeded CSS (for example, so Playwright or a
+different sample app can drive it without paying the startup cost each time):
+
+```sh
+pnpm dev:css
+```
+
+That starts CSS with the same seeded accounts as `dev:testbed` but skips the
+example dev servers and the browser open. Leave it running in one terminal and
+point your other tooling at `http://localhost:3000`.
+
 ## Pointing at a different CSS instance
 
-The orchestrator reads `CSS_PORT` from the environment if you want to avoid a
+The orchestrators read `CSS_PORT` from the environment if you want to avoid a
 port clash:
 
 ```sh
 CSS_PORT=3100 pnpm dev:testbed
+CSS_PORT=3100 pnpm dev:css
 ```
 
 If you want to point the example app at an already-running CSS elsewhere,
