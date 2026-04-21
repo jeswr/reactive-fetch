@@ -97,7 +97,7 @@ jobs:
         # Actions" yet. Silent no-op on subsequent runs once Pages is live.
         # If auto-enablement is blocked by org policy, the user needs to
         # flip the setting manually (see README "Deploying this repo").
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 
