@@ -218,3 +218,21 @@ describe('SSR environment guard', () => {
     }
   });
 });
+
+describe('ensureRestored: silent-logout detection', () => {
+  test('throws SessionRestoreFailedError when restore() resolves but isActive stays false', async () => {
+    const { SessionRestoreFailedError } = await import('./errors.js');
+    const { session } = sessionModule.createSessionBootstrap('https://app.example/id');
+    const fake = session as unknown as FakeSession;
+    // Simulate uvdsl's silent-logout path: restore() resolves (no throw) but
+    // the session flips back to / stays inactive because the access token
+    // was missing a `webid` claim or `_computeAth` failed.
+    fake.restoreImpl = async () => {
+      fake.isActive = false;
+    };
+
+    await expect(sessionModule.ensureRestored(session)).rejects.toBeInstanceOf(
+      SessionRestoreFailedError,
+    );
+  });
+});

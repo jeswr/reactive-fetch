@@ -1,5 +1,5 @@
 import { Session } from '@uvdsl/solid-oidc-client-browser';
-import { LoginFailedError } from './errors.js';
+import { LoginFailedError, SessionRestoreFailedError } from './errors.js';
 
 export interface SessionBootstrap {
   readonly clientId: string;
@@ -61,6 +61,15 @@ export async function ensureRestored(session: Session, force = false): Promise<v
       await session.restore();
     } catch (cause) {
       throw new LoginFailedError('Failed to restore Solid-OIDC session.', { cause });
+    }
+    // `@uvdsl/solid-oidc-client-browser`'s `_updateSessionDetailsFromToken`
+    // silently calls `this.logout()` and returns without throwing if the
+    // access token JWT is missing a `webid` or `exp` claim or `computeAth`
+    // fails. Surface that case as a typed error so apps can detect
+    // "restore silently failed" instead of observing a false-negative
+    // inactive session.
+    if (!session.isActive) {
+      throw new SessionRestoreFailedError();
     }
   })();
 
