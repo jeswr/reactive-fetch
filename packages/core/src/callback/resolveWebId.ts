@@ -10,7 +10,7 @@ import contentType from 'content-type';
 import type { DatasetCore, Quad } from '@rdfjs/types';
 import { NamedNodeAs, NamedNodeFrom } from '@rdfjs/wrapper';
 import { Agent, WebIdDataset } from '@solid/object/webid';
-import { NoOidcIssuerError, WebIdProfileError } from '../errors.js';
+import { InvalidIssuerError, NoOidcIssuerError, WebIdProfileError } from '../errors.js';
 
 const OIDC_ISSUER_IRI = 'http://www.w3.org/ns/solid/terms#oidcIssuer';
 
@@ -80,9 +80,34 @@ export async function resolveOidcIssuers(webIdUrl: string): Promise<string[]> {
     N3DataFactory,
   );
 
-  const issuers = [...agent.oidcIssuers];
-  if (issuers.length === 0) throw new NoOidcIssuerError(webIdUrl);
+  const rawIssuers = [...agent.oidcIssuers];
+  if (rawIssuers.length === 0) throw new NoOidcIssuerError(webIdUrl);
+
+  const issuers = rawIssuers.filter((iss) => isAllowedIssuer(iss));
+  if (issuers.length === 0) {
+    throw new InvalidIssuerError(
+      webIdUrl,
+      rawIssuers[0]!,
+      `WebID ${webIdUrl} declared ${rawIssuers.length} solid:oidcIssuer value(s), none of which are HTTPS URLs: ${rawIssuers.join(', ')}.`,
+    );
+  }
   return issuers;
+}
+
+// An OIDC issuer MUST be an absolute HTTPS URL (OIDC Discovery §2). We also
+// accept http://localhost and http://127.0.0.1 for local dev workflows.
+function isAllowedIssuer(issuer: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(issuer);
+  } catch {
+    return false;
+  }
+  if (url.protocol === 'https:') return true;
+  if (url.protocol === 'http:') {
+    return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  }
+  return false;
 }
 
 function parseTurtle(body: string, format: string, baseIRI: string): Quad[] {

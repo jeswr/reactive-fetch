@@ -1,8 +1,10 @@
 export type ReactiveFetchErrorCode =
   | 'popup_blocked'
   | 'popup_closed'
+  | 'popup_timeout'
   | 'webid_profile'
   | 'no_oidc_issuer'
+  | 'invalid_issuer'
   | 'login_failed'
   | 'origin_mismatch';
 
@@ -38,6 +40,20 @@ export class PopupClosedError extends ReactiveFetchError {
   }
 }
 
+export class PopupTimeoutError extends ReactiveFetchError {
+  readonly code = 'popup_timeout';
+  readonly timeoutMs: number;
+
+  constructor(timeoutMs: number, message?: string, options?: ErrorOptions) {
+    super(
+      message ?? `Login popup did not complete within ${timeoutMs}ms.`,
+      options,
+    );
+    this.name = 'PopupTimeoutError';
+    this.timeoutMs = timeoutMs;
+  }
+}
+
 export class WebIdProfileError extends ReactiveFetchError {
   readonly code = 'webid_profile';
   readonly webId: string;
@@ -57,6 +73,23 @@ export class NoOidcIssuerError extends ReactiveFetchError {
     super(message ?? `WebID Profile Document at ${webId} has no solid:oidcIssuer triple.`, options);
     this.name = 'NoOidcIssuerError';
     this.webId = webId;
+  }
+}
+
+export class InvalidIssuerError extends ReactiveFetchError {
+  readonly code = 'invalid_issuer';
+  readonly webId: string;
+  readonly issuer: string;
+
+  constructor(webId: string, issuer: string, message?: string, options?: ErrorOptions) {
+    super(
+      message ??
+        `OIDC issuer "${issuer}" declared by WebID ${webId} is not a valid HTTPS URL.`,
+      options,
+    );
+    this.name = 'InvalidIssuerError';
+    this.webId = webId;
+    this.issuer = issuer;
   }
 }
 

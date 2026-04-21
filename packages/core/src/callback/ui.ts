@@ -94,10 +94,15 @@ export function renderIssuerPicker(
     radio.id = id;
     radio.value = issuer;
 
-    const text = document.createElement('span');
-    text.textContent = issuer;
+    const host = document.createElement('strong');
+    host.setAttribute('data-reactive-fetch', 'issuer-host');
+    host.textContent = safeIssuerHost(issuer);
 
-    itemLabel.append(radio, text);
+    const full = document.createElement('span');
+    full.setAttribute('data-reactive-fetch', 'issuer-url');
+    full.textContent = issuer;
+
+    itemLabel.append(radio, host, full);
     list.append(itemLabel);
     radios.push(radio);
   });
@@ -175,5 +180,13 @@ export class IssuerPickerCancelled extends Error {
   constructor() {
     super('Issuer picker cancelled by user.');
     this.name = 'IssuerPickerCancelled';
+  }
+}
+
+function safeIssuerHost(issuer: string): string {
+  try {
+    return new URL(issuer).host || issuer;
+  } catch {
+    return issuer;
   }
 }
