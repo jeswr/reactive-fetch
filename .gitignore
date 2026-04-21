@@ -11,3 +11,4 @@ coverage
 *.log
 .pnpm-store
 .claude/settings.local.json
+.css-data

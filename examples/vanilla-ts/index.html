@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>reactive-fetch vanilla-ts example</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: 720px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      button {
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      #status {
+        margin: 1rem 0;
+        font-style: italic;
+        color: #555;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>reactive-fetch vanilla-ts example</h1>
+    <p>
+      Click a button below. The first interaction opens a popup where you enter
+      your WebID and sign in; subsequent interactions reuse the restored
+      session.
+    </p>
+    <p>
+      <button id="show-webid">Show my WebID</button>
+      <button id="fetch-private">Fetch private resource from my pod</button>
+    </p>
+    <div id="status">Ready.</div>
+    <pre id="output">(no output yet)</pre>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

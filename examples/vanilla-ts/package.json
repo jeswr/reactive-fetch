@@ -1,0 +1,21 @@
+{
+  "name": "@jeswr/example-vanilla-ts",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Vanilla TypeScript demo for @jeswr/solid-reactive-fetch",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5173 --strictPort",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jeswr/solid-reactive-fetch": "workspace:*",
+    "@uvdsl/solid-oidc-client-browser": "^0.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^6.0.11"
+  }
+}
