@@ -30,6 +30,10 @@ function jsonLdContentType(): Plugin {
 }
 
 export default defineConfig({
+  // In CI (GitHub Pages) the app is served under a sub-path like
+  // `/reactive-fetch/vanilla-ts/`. Dev and preview default to `/` so local
+  // tooling (pnpm dev:testbed, e2e harness) keeps working unchanged.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [jsonLdContentType()],
   server: {
     port: 5173,

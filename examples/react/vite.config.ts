@@ -31,6 +31,10 @@ function jsonLdContentType(): Plugin {
 }
 
 export default defineConfig({
+  // In CI (GitHub Pages) the app is served under a sub-path like
+  // `/reactive-fetch/react/`. Dev and preview default to `/` so local
+  // tooling (pnpm dev:testbed, e2e harness) keeps working unchanged.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react(), jsonLdContentType()],
   // `@uvdsl/solid-oidc-client-browser` spawns a refresh worker via
   // `new URL('./RefreshWorker.js', import.meta.url)`. Vite's dep optimizer
