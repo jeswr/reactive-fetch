@@ -60,6 +60,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build packages (typecheck depends on built dist types)
+        run: pnpm --filter './packages/*' build
+
       - name: Typecheck all packages
         run: pnpm -r typecheck
 
@@ -95,7 +98,7 @@ jobs:
           path: packages
 
       - name: Run unit tests
-        run: pnpm -r test
+        run: pnpm --filter './packages/*' test
 
   e2e:
     name: E2E (Playwright chromium)
