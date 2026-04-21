@@ -17,14 +17,22 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
   const { clientId, callbackUrl } = options;
   const { session } = createSessionBootstrap(clientId);
 
+  // Attempt to restore any session persisted in IndexedDB before any path
+  // could decide to open a popup. Swallowed at construction so a missing
+  // or invalid refresh token doesn't make the factory unusable; isActive
+  // stays false and the login popup will run on first demand.
+  const restorePromise = ensureRestored(session).catch(() => undefined);
+
   let loginPromise: Promise<string> | null = null;
 
   const ensureLoggedIn = (): Promise<string> => {
-    if (session.isActive && session.webId) return Promise.resolve(session.webId);
     if (loginPromise) return loginPromise;
 
     const pending: Promise<string> = (async () => {
       try {
+        await restorePromise;
+        if (session.isActive && session.webId) return session.webId;
+
         await openLoginPopup({ callbackUrl });
         await ensureRestored(session);
         if (!session.isActive || !session.webId) {
@@ -45,6 +53,7 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
       return ensureLoggedIn();
     },
     async fetch(input, init) {
+      await restorePromise;
       if (session.isActive) {
         return authFetch(session, input, init);
       }
