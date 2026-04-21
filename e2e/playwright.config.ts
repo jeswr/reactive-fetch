@@ -9,6 +9,7 @@ const isCI = !!process.env['CI'];
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: /demo\.spec\.ts$/,
   fullyParallel: false,
   workers: 1,
   forbidOnly: isCI,

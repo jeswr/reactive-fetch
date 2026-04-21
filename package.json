@@ -24,6 +24,7 @@
     "test:e2e": "pnpm --filter @jeswr/reactive-fetch-e2e test",
     "test:e2e:ui": "pnpm --filter @jeswr/reactive-fetch-e2e test:ui",
     "test:e2e:install": "pnpm --filter @jeswr/reactive-fetch-e2e install-browsers",
+    "demo:record": "node scripts/demo-record.mjs",
     "clean": "pnpm --filter './packages/*' -r clean && rimraf node_modules",
     "release": "pnpm build && pnpm exec multi-semantic-release"
   },
