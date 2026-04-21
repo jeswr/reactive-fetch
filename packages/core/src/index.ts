@@ -23,7 +23,7 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     if (session.isActive && session.webId) return Promise.resolve(session.webId);
     if (loginPromise) return loginPromise;
 
-    const run = async (): Promise<string> => {
+    const pending: Promise<string> = (async () => {
       try {
         await openLoginPopup({ callbackUrl });
         await ensureRestored(session);
@@ -32,11 +32,10 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
         }
         return session.webId;
       } finally {
-        if (loginPromise === pending) loginPromise = null;
+        loginPromise = null;
       }
-    };
+    })();
 
-    const pending = run();
     loginPromise = pending;
     return pending;
   };
