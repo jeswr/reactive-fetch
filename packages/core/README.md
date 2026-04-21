@@ -6,7 +6,9 @@
 
 Reactive authenticated `fetch` for Solid applications. Authentication is triggered automatically — no explicit `login()` or `logout()`.
 
-<video src="../../docs/demo.webm" controls muted width="720"></video>
+**Live demo**: <https://jeswr.github.io/reactive-fetch/>
+
+<video src="../../docs/demo.webm" controls muted width="100%"></video>
 
 ```ts
 import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
