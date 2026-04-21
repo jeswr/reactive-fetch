@@ -6,6 +6,7 @@ import { Parser as N3Parser, DataFactory as N3DataFactory } from 'n3';
 import datasetFactory from '@rdfjs/dataset';
 import { rdfParser } from 'rdf-parse';
 import { Readable } from 'readable-stream';
+import contentType from 'content-type';
 import type { DatasetCore, Quad } from '@rdfjs/types';
 import { NamedNodeAs, NamedNodeFrom } from '@rdfjs/wrapper';
 import { Agent, WebIdDataset } from '@solid/object/webid';
@@ -46,18 +47,27 @@ export async function resolveOidcIssuers(webIdUrl: string): Promise<string[]> {
   }
 
   const rawContentType = response.headers.get('content-type') ?? 'text/turtle';
-  const contentType = rawContentType.split(';')[0]!.trim().toLowerCase();
+  let mediaType: string;
+  try {
+    mediaType = contentType.parse(rawContentType).type;
+  } catch (cause) {
+    throw new WebIdProfileError(
+      webIdUrl,
+      `Invalid Content-Type "${rawContentType}" on WebID profile at ${webIdUrl}.`,
+      { cause },
+    );
+  }
   const body = await response.text();
 
   let quads: Quad[];
   try {
-    quads = TURTLE_FAMILY.has(contentType)
-      ? parseTurtle(body, contentType, webIdUrl)
-      : await parseWithRdfParse(body, contentType, webIdUrl);
+    quads = TURTLE_FAMILY.has(mediaType)
+      ? parseTurtle(body, mediaType, webIdUrl)
+      : await parseWithRdfParse(body, mediaType, webIdUrl);
   } catch (cause) {
     throw new WebIdProfileError(
       webIdUrl,
-      `Failed to parse WebID profile (${contentType}) at ${webIdUrl}.`,
+      `Failed to parse WebID profile (${mediaType}) at ${webIdUrl}.`,
       { cause },
     );
   }
