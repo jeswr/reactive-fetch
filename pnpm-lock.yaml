@@ -122,8 +122,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
       '@rdfjs/wrapper':
-        specifier: ^0.32.0
-        version: 0.32.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@solid/object':
         specifier: ^0.5.0
         version: 0.5.0
@@ -1442,6 +1442,10 @@ packages:
 
   '@rdfjs/wrapper@0.32.0':
     resolution: {integrity: sha512-xJdRz/Jk11S9xlqRRBkLWxIxWUuIQqy/BeNvp94m34m1DTEwYMa+wHdznPTEvDEHXRGSFOs1guZ1Z0swW+axcg==}
+    engines: {node: '>=24.0.0'}
+
+  '@rdfjs/wrapper@0.34.0':
+    resolution: {integrity: sha512-psGw4IAH0E27P7Nlro0SzjqPJJ+aE3MkYKWfNbBk+vwT2Zt+gJJyuznuYg54peZs4rAF9FLoqCe4JdvQNDTzMw==}
     engines: {node: '>=24.0.0'}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.16':
@@ -7552,6 +7556,8 @@ snapshots:
       '@types/node': 25.6.0
 
   '@rdfjs/wrapper@0.32.0': {}
+
+  '@rdfjs/wrapper@0.34.0': {}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.16':
     optional: true
