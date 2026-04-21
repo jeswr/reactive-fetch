@@ -34,6 +34,10 @@ export function openLoginPopup(options: OpenLoginPopupOptions): Promise<void> {
     const cleanup = () => {
       window.removeEventListener('message', onMessage);
       if (pollTimer !== undefined) clearInterval(pollTimer);
+      if (pending === promise) {
+        pending = null;
+        activeAbort = null;
+      }
     };
 
     const settleResolve = () => {
@@ -76,13 +80,6 @@ export function openLoginPopup(options: OpenLoginPopupOptions): Promise<void> {
   });
 
   pending = promise;
-  promise.finally(() => {
-    if (pending === promise) {
-      pending = null;
-      activeAbort = null;
-    }
-  });
-
   return promise;
 }
 
