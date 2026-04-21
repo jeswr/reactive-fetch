@@ -1,0 +1,35 @@
+# Auto-merge Dependabot PRs for minor/patch updates once CI passes.
+# DISABLED BY DEFAULT — remove the `if: false &&` guard on the job below to
+# enable. Kept here so the config is ready when the maintainer wants it.
+#
+# Requires:
+# - `gh pr merge --auto` (enabled in repo settings -> General -> Allow auto-merge)
+# - `GH_TOKEN` secret with PR write rights (the workflow falls back to
+#   github.token if GH_TOKEN is missing)
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: false && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for minor/patch updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-minor' || steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
