@@ -26,7 +26,7 @@
     "test:e2e:install": "pnpm --filter @jeswr/reactive-fetch-e2e install-browsers",
     "demo:record": "node scripts/demo-record.mjs",
     "clean": "pnpm --filter './packages/*' -r clean && rimraf node_modules",
-    "release": "pnpm build && pnpm exec multi-semantic-release"
+    "release": "pnpm build && pnpm exec multi-semantic-release --ignore-private-packages"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",

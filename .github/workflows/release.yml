@@ -55,7 +55,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
-        run: pnpm exec multi-semantic-release
+        run: pnpm exec multi-semantic-release --ignore-private-packages
 
       - name: Setup Node.js for GitHub Packages
         uses: actions/setup-node@v4
