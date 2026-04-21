@@ -12,3 +12,8 @@ coverage
 .pnpm-store
 .claude/settings.local.json
 .css-data
+e2e/.css-data
+e2e/.css-seed.json
+e2e/playwright-report
+e2e/test-results
+e2e/.auth
