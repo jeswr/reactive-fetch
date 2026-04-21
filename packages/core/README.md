@@ -1,5 +1,9 @@
 # @jeswr/solid-reactive-fetch
 
+[![CI](https://img.shields.io/github/actions/workflow/status/jeswr/reactive-fetch/ci.yml?branch=main)](https://github.com/jeswr/reactive-fetch/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@jeswr/solid-reactive-fetch)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch)
+[![npm downloads](https://img.shields.io/npm/dw/@jeswr/solid-reactive-fetch)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch)
+
 Reactive authenticated `fetch` for Solid applications. Authentication is triggered automatically — no explicit `login()` or `logout()`.
 
 ```ts
