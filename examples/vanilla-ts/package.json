@@ -15,7 +15,7 @@
     "@uvdsl/solid-oidc-client-browser": "^0.2.2"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vite": "^6.0.11"
   }
 }
