@@ -20,14 +20,40 @@ import {
   driveCssConsentIfPresent,
   driveCssLoginForm,
 } from '../fixtures/login.js';
-import { ALICE, SEL } from '../fixtures/constants.js';
+import { putAcl, putResource } from '../fixtures/css-admin.js';
+import { ALICE, CSS_URL, SEL } from '../fixtures/constants.js';
+
+// The vanilla-ts example hard-codes this URL for the "Fetch private resource"
+// button. We seed it on-the-fly with an alice-only ACL so unauthenticated
+// fetches 401 (making "authenticated" meaningful in the demo).
+const DEMO_PRIVATE_URL = `${CSS_URL}/alice/private.txt`;
+const DEMO_PRIVATE_BODY = "Hello from alice's private pod resource.";
+
+function aliceOnlyAcl(resourceUrl: string, webId: string): string {
+  return [
+    '@prefix acl: <http://www.w3.org/ns/auth/acl#>.',
+    '',
+    '<#owner>',
+    '  a acl:Authorization;',
+    `  acl:agent <${webId}>;`,
+    `  acl:accessTo <${resourceUrl}>;`,
+    '  acl:mode acl:Read, acl:Write, acl:Control.',
+    '',
+  ].join('\n');
+}
 
 async function highlight(ms = 1_000): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 test.describe('demo', () => {
-  test('records the full reactive-fetch flow end to end', async ({ context, page }) => {
+  test('records the full reactive-fetch flow end to end', async ({ context, page, aliceFetcher }) => {
+    // Seed the private resource the app fetches. Public-read-OK ACL would let
+    // the demo "succeed" without auth — so we lock it down to alice only and
+    // rely on the authenticated fetch to bring the right DPoP token.
+    await putResource(aliceFetcher, DEMO_PRIVATE_URL, DEMO_PRIVATE_BODY, 'text/plain');
+    await putAcl(aliceFetcher, DEMO_PRIVATE_URL, aliceOnlyAcl(DEMO_PRIVATE_URL, ALICE.webId));
+
     // 1. Load the app.
     await page.goto('/');
     await page.locator(SEL.showWebIdBtn).waitFor({ state: 'visible' });
@@ -56,7 +82,7 @@ test.describe('demo', () => {
 
     // 7. Authenticated fetch.
     await page.locator(SEL.fetchPrivateBtn).click();
-    await expect(page.locator(SEL.output)).toContainText(ALICE.privateBody, {
+    await expect(page.locator(SEL.output)).toContainText(DEMO_PRIVATE_BODY, {
       timeout: 20_000,
     });
     // Let the viewer absorb the final result.

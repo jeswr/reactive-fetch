@@ -7,6 +7,17 @@
 
 A reactive authenticated `fetch` for Solid applications, driven by a popup-based login flow (no browser extension required).
 
+## Demo
+
+The full flow — click, popup login, authenticated fetch — in one 30-second
+take:
+
+<video src="./docs/demo.webm" controls muted width="720"></video>
+
+<!-- Once ffmpeg is available, run `pnpm demo:record` to also produce
+     docs/demo.mp4 (HTML video fallback) and docs/demo.gif (GitHub web UI
+     embed). -->
+
 ## Packages
 
 - [`@jeswr/solid-reactive-fetch`](packages/core) — the core framework-agnostic package
