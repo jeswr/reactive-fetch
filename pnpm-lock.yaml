@@ -118,21 +118,15 @@ importers:
 
   packages/core:
     dependencies:
-      '@rdfjs/dataset':
-        specifier: ^2.0.2
-        version: 2.0.2
+      '@jeswr/fetch-rdf':
+        specifier: github:jeswr/fetch-rdf#main
+        version: git+https://github.com/jeswr/fetch-rdf.git#c0b1a919d0449024df0df7b17f5c86ffc6e1fba5
       '@rdfjs/wrapper':
         specifier: ^0.32.0
         version: 0.32.0
       '@solid/object':
         specifier: ^0.5.0
         version: 0.5.0
-      content-type:
-        specifier: ^1.0.5
-        version: 1.0.5
-      jsonld-streaming-parser:
-        specifier: ^5.0.1
-        version: 5.0.1
       n3:
         specifier: ^2.0.3
         version: 2.0.3
@@ -140,18 +134,12 @@ importers:
       '@rdfjs/types':
         specifier: ^2.0.1
         version: 2.0.1
-      '@types/content-type':
-        specifier: ^1.1.9
-        version: 1.1.9
       '@types/n3':
         specifier: ^1.26.1
         version: 1.26.1
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
-      '@types/rdfjs__dataset':
-        specifier: ^2.0.7
-        version: 2.0.7
       '@uvdsl/solid-oidc-client-browser':
         specifier: ^0.2.2
         version: 0.2.2
@@ -1280,6 +1268,11 @@ packages:
     resolution: {integrity: sha512-RQgQ4uQ+pLbqXfOmieB91ejmLwvSgv9nLx6sT6sD83s7umBypgg+OIBOBbEUiJXrfpnp9j0mRhYYdzp9uqq3lA==}
     engines: {node: '>=12'}
 
+  '@jeswr/fetch-rdf@git+https://github.com/jeswr/fetch-rdf.git#c0b1a919d0449024df0df7b17f5c86ffc6e1fba5':
+    resolution: {commit: c0b1a919d0449024df0df7b17f5c86ffc6e1fba5, repo: https://github.com/jeswr/fetch-rdf.git, type: git}
+    version: 0.1.0
+    engines: {node: '>=20'}
+
   '@jeswr/prefixcc@1.2.1':
     resolution: {integrity: sha512-kBBXbqsaeh3Irp416h/RbelqJgIOp6X/OJJlYmLyr/9qlBYKTKSCuEv5/xjZ0Yf8Yec+QFRYBaOQ2JkMBSH7KA==}
 
@@ -1809,9 +1802,6 @@ packages:
   '@types/content-disposition@0.5.9':
     resolution: {integrity: sha512-8uYXI3Gw35MhiVYhG3s295oihrxRyytcRHjSjqnqZVDDy/xcGBRny7+Xj1Wgfhv5QzRtN2hB2dVRBUX9XW3UcQ==}
 
-  '@types/content-type@1.1.9':
-    resolution: {integrity: sha512-Hq9IMnfekuOCsEmYl4QX2HBrT+XsfXiupfrLLY8Dcf3Puf4BkBOxSbWYTITSOQAhJoYPBez+b4MJRpIYL65z8A==}
-
   '@types/cookie@0.5.4':
     resolution: {integrity: sha512-7z/eR6O859gyWIAjuvBWFzNURmf2oPBmJlfVWkwehU5nzIyjwBsTh7WMmEEV4JFnHuQ3ex4oyTvfKzcyJVDBNA==}
 
@@ -1922,9 +1912,6 @@ packages:
 
   '@types/rdf-validate-shacl@0.4.9':
     resolution: {integrity: sha512-mjWwr+/7p2NPmJThB0nS1N7HWTrPAP5MFOVjEChiy2/e9mNH7WxtkMAEro00Ew/prcf6pw5ke1dzq/vkhBh7+A==}
-
-  '@types/rdfjs__dataset@2.0.7':
-    resolution: {integrity: sha512-+GaYIL9C7N1N0HyH+obU4IXuL7DX+fXuf827aUQ2Vx2UghO47+OTxo2v3seEQj/1YHoHBfQFk5Y4P6Q7Ht4Hqw==}
 
   '@types/rdfjs__environment@1.0.0':
     resolution: {integrity: sha512-MDcnv3qfJvbHoEpUQXj5muT8g3e+xz1D8sGevrq3+Q4TzeEvQf5ijGX5l8485XFYrN/OBApgzXkHMZC04/kd5w==}
@@ -7261,6 +7248,13 @@ snapshots:
 
   '@isaacs/ttlcache@1.4.1': {}
 
+  '@jeswr/fetch-rdf@git+https://github.com/jeswr/fetch-rdf.git#c0b1a919d0449024df0df7b17f5c86ffc6e1fba5':
+    dependencies:
+      '@rdfjs/dataset': 2.0.2
+      content-type: 1.0.5
+      jsonld-streaming-parser: 5.0.1
+      n3: 2.0.3
+
   '@jeswr/prefixcc@1.2.1':
     dependencies:
       cross-fetch: 3.2.0
@@ -7873,8 +7867,6 @@ snapshots:
 
   '@types/content-disposition@0.5.9': {}
 
-  '@types/content-type@1.1.9': {}
-
   '@types/cookie@0.5.4': {}
 
   '@types/cookies@0.9.2':
@@ -8007,10 +7999,6 @@ snapshots:
       '@rdfjs/types': 2.0.1
       '@types/clownface': 2.0.10
       '@types/node': 25.6.0
-
-  '@types/rdfjs__dataset@2.0.7':
-    dependencies:
-      '@rdfjs/types': 2.0.1
 
   '@types/rdfjs__environment@1.0.0':
     dependencies:
