@@ -14,27 +14,49 @@ const rf = createReactiveFetch({
   callbackUrl: "https://myapp.example/reactive-fetch-callback",
 });
 
-// Promise-valued. Reading it reactively triggers the login popup if not yet authenticated.
+// Reactive surface (lazy-login on read):
+//   Promise-valued. Reading it reactively triggers the login popup if not yet authenticated.
 const webId: string = await rf.webId;
 
 // Fetches public resources without auth. On 401, transparently triggers login and retries.
 const res = await rf.fetch("https://pod.example/private-resource");
+
+// Extension-shaped facade (mirrors window.solid from theodi/solid-browser-extension dev_hkir):
+rf.solid.webId;        // string | null   — bare WebID snapshot
+rf.solid.profile;      // WebIDProfile | null — wrapped @solid/object Agent
+rf.solid.clientId;     // string | undefined  — currently-set Client ID URI
+await rf.solid.fetch(url, init);                // authenticated fetch
+rf.solid.setClientId('https://app.example/id'); // sync
+await rf.solid.login('https://alice.example/profile#me'); // takes WebID
+await rf.solid.logout();                        // clear local tokens
 ```
 
-That is the entire surface:
+The surface is the union of two contracts:
+
+**Reactive (the original USP):**
 
 - **`rf.fetch(input, init?)`** — tries unauthenticated first (or with an already-restored session), retries with auth on a 401
 - **`rf.webId`** — a `Promise<string>` that resolves to the authenticated WebID. Reading it when no session is active triggers the login popup and resolves once auth completes. Multiple reads share the same pending Promise
-- **Init option `clientId`** — the hosted Client ID Document URI
-- **Init option `callbackUrl`** — the URL where the consumer has mounted `mountCallback()` from `@jeswr/solid-reactive-fetch/callback`. Must be served from the same origin as the app so IndexedDB is shared. This URL must also appear in the Client ID Document's `redirect_uris`
-- **Init option `allowLocalhost`** — default **`false`**. When `true`, the issuer filter accepts `http://localhost`, `http://127.0.0.1`, and `http://[::1]` in addition to HTTPS. Must be passed to both `createReactiveFetch` and `mountCallback` since the filter runs inside the popup. Set only in local-dev builds (`import.meta.env.DEV`) — a production build with this on would let a hostile WebID redirect the popup at a local port.
 
-### Explicitly NOT in the API
+**Extension-shaped facade (`rf.solid`):** mirrors `window.solid` from the in-development `theodi/solid-browser-extension` (`dev_hkir`) so a future unified-wrapper package can `const solid = window.solid ?? rf.solid;` without per-source adaptation. See `packages/core/src/index.ts` (file-header comment) for the full contract and the design judgement calls (notably: `solid.webId` is a bare string snapshot, the wrapped object lives on `solid.profile` — that matches the extension's `inject.ts`, NOT a single-property fold-in).
+
+**`WebIDProfile`** is a forward-compatible alias for the upcoming `@solid/object` `WebIDProfile` export (today: `Agent` from `@solid/object/webid`). Stable getters: `value`, `oidcIssuers`, `pimStorage`, `solidStorage`, `storageUrls`. Social-graph getters (`name`, `email`, etc.) are flagged unstable in `WebIDProfile.ts` per the Solid 26 spec note.
+
+**Init options:**
+
+- **`clientId`** — the hosted Client ID Document URI
+- **`callbackUrl`** — the URL where the consumer has mounted `mountCallback()` from `@jeswr/solid-reactive-fetch/callback`. Must be served from the same origin as the app so IndexedDB is shared. This URL must also appear in the Client ID Document's `redirect_uris`
+- **`allowLocalhost`** — default **`false`**. When `true`, the issuer filter accepts `http://localhost`, `http://127.0.0.1`, and `http://[::1]` in addition to HTTPS. Must be passed to both `createReactiveFetch` and `mountCallback` since the filter runs inside the popup. Set only in local-dev builds (`import.meta.env.DEV`) — a production build with this on would let a hostile WebID redirect the popup at a local port.
+
+### Explicitly NOT on the reactive surface (`rf.fetch` / `rf.webId`)
 
 - No `login(idp)` — auth is triggered by fetch or by reading `webId`
-- No `logout()` — sessions clear through refresh-token expiry or tab close; no explicit tear-down method
 - No state-change event subscription — `webId` and `fetch` are the only reactive surfaces
-- No `setClientId(...)` method — set once at construction
+
+(`rf.solid` adds `login(webId)`, `logout()`, and `setClientId(...)` because the
+extension's API exposes them and the unified-wrapper shape requires them.
+`rf.solid.login(webId)` is an imperative driver of the same popup the
+reactive surface uses — both share the single-flight popup state.)
 
 ### The login flow (internal mechanics)
 

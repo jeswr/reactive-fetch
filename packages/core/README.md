@@ -7,7 +7,9 @@
 > [!WARNING]
 > **This package has NOT been independently security reviewed.** It is published for **testing and evaluation purposes only** and should not be used to protect production user data. The public API, storage format, and security guarantees may change without notice. Use at your own risk.
 
-Reactive authenticated `fetch` for Solid applications. Authentication is triggered automatically — no explicit `login()` or `logout()`.
+Reactive authenticated `fetch` for Solid applications. Authentication is triggered automatically — no explicit `login()` or `logout()` required.
+
+The package's public shape mirrors the global API installed by the in-development [`theodi/solid-browser-extension`](https://github.com/theodi/solid-browser-extension) (`dev_hkir` branch), so a future "unified wrapper" package can re-export from either source transparently. The extension is **not yet on npm** — the colleague is working through publish-auth issues. Until it ships, `@jeswr/solid-reactive-fetch` is the single source for both the reactive surface (`rf.webId`, `rf.fetch`) and the extension-shaped facade (`rf.solid`).
 
 **Live demo**: <https://jeswr.github.io/reactive-fetch/>
 
@@ -27,6 +29,44 @@ const webId = await rf.webId;
 // Fetching a private resource: tries unauthenticated first, retries with DPoP-bound auth on 401.
 const res = await rf.fetch('https://pod.example/private-resource');
 ```
+
+## Extension-shaped facade — `rf.solid`
+
+`rf.solid` mirrors `window.solid` from the browser extension byte-for-byte, so the unified-wrapper package can pick whichever source is available at runtime:
+
+```ts
+const solid = (typeof window !== 'undefined' && window.solid) ?? rf.solid;
+
+solid.webId;        // string | null   — bare WebID, snapshot
+solid.profile;      // WebIDProfile | null — wrapped @solid/object Agent
+solid.clientId;     // string | undefined  — currently-set Client ID URI
+await solid.fetch(url, init);            // authenticated fetch
+solid.setClientId('https://app.example/client-id.jsonld'); // sync
+await solid.login('https://alice.example/profile#me');     // takes WebID
+await solid.logout();                                       // clear local tokens
+```
+
+### `WebIDProfile` — wrapped profile object
+
+`WebIDProfile` is a forward-compatible alias for the upcoming `@solid/object` `WebIDProfile` export. Today it resolves to `Agent` from `@solid/object/webid`. When `@solid/object` ships the rename, switching is a one-line import change inside `reactive-fetch` — your code that uses `WebIDProfile` keeps working.
+
+**Stable getters** (use freely):
+
+- `value` — the WebID IRI as a string
+- `oidcIssuers` — `Set<string>` of `solid:oidcIssuer` IRIs
+- `pimStorage` / `solidStorage` / `storageUrls` — `Set<string>` of declared storage roots
+
+**UNSTABLE — do not depend on these in cross-package code**: the social-graph getters from `@solid/object` (`name`, `email`, `knows`, `phone`, `photoUrl`, `website`, `organization`, `role`, `title`, `vcardFn`, `foafName`, `hasEmail`, `hasTelephone`, `vcardHasUrl`, `foafHomepage`). The Solid 26 spec note explicitly flags these as subject to change. They remain accessible — `WebIDProfile extends Agent` — but the unified-wrapper API does not promise them.
+
+### `webId`: reactive promise vs sync snapshot
+
+Two ways to read the WebID, on purpose:
+
+| Surface | Type | Triggers login? | When to use |
+| --- | --- | --- | --- |
+| `rf.webId` | `Promise<string>` | YES — opens popup if no session | "I want to render a signed-in UI; sign me in if needed" |
+| `rf.solid.webId` | `string \| null` | NO — pure read | "Render a snapshot; offer a Login button if `null`" |
+| `rf.solid.login(webId)` | `Promise<void>` | YES — opens popup | Imperative "Sign in" click handler |
 
 ## Restore lifecycle
 

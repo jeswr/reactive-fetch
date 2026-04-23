@@ -7,6 +7,8 @@
 
 A reactive authenticated `fetch` for Solid applications, driven by a popup-based login flow (no browser extension required).
 
+The package's public API mirrors the global surface installed by the in-development [`theodi/solid-browser-extension`](https://github.com/theodi/solid-browser-extension) (`dev_hkir` branch). A future "unified wrapper" package will pick whichever source is available at runtime — extension when installed, this library otherwise — without requiring per-source adaptation in app code. The extension is **not yet on npm** (the colleague is working through publish-auth issues).
+
 **Live demo**: <https://jeswr.github.io/reactive-fetch/>
 
 ## Demo
