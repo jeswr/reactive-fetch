@@ -22,11 +22,32 @@ const TURTLE_FAMILY = new Set([
 
 const JSON_LD_FAMILY = new Set(['application/ld+json', 'application/json']);
 
-class WebIdAgent extends Agent {
+/**
+ * Subclass of `@solid/object`'s Agent that adds an `oidcIssuers` getter
+ * (the upstream class today only exposes pim/solid storage; the
+ * solid:oidcIssuer triple is what Solid-OIDC §6.1 mandates for issuer
+ * discovery and is the property reactive-fetch / the browser extension
+ * actually need from the profile).
+ *
+ * Exported as `WebIDProfileAgent` so the wrapping class is structurally
+ * equivalent to a `WebIDProfile` (alias for upstream `Agent`) — instances
+ * of it satisfy the `WebIDProfile` type, with the extra `oidcIssuers`
+ * getter available for callers that have the runtime instance in hand.
+ *
+ * If/when `@solid/object` adds an `oidcIssuers` getter to `Agent` directly,
+ * this subclass collapses to a plain re-export. See `WebIDProfile.ts` for
+ * the forward-compat story.
+ */
+export class WebIDProfileAgent extends Agent {
   get oidcIssuers(): Set<string> {
     return this.objects(OIDC_ISSUER_IRI, NamedNodeAs.string, NamedNodeFrom.string);
   }
 }
+
+// Internal alias kept for the existing (lower-case-d) name used throughout
+// this file — newer call sites use the exported `WebIDProfileAgent`.
+const WebIdAgent = WebIDProfileAgent;
+type WebIdAgent = WebIDProfileAgent;
 
 export interface ResolveOidcIssuersOptions {
   /**
@@ -57,6 +78,82 @@ export async function resolveWebIdProfile(
   options: ResolveOidcIssuersOptions = {},
 ): Promise<WebIdProfile> {
   const allowLocalhost = options.allowLocalhost ?? false;
+  const { agent, rawIssuers } = await fetchAndBuildAgent(webIdUrl);
+  if (rawIssuers.length === 0) throw new NoOidcIssuerError(webIdUrl);
+
+  const issuers = rawIssuers.filter((iss) => isAllowedIssuer(iss, allowLocalhost));
+  if (issuers.length === 0) {
+    throw new InvalidIssuerError(
+      webIdUrl,
+      rawIssuers[0]!,
+      `WebID ${webIdUrl} declared ${rawIssuers.length} solid:oidcIssuer value(s), none of which are valid ${allowLocalhost ? 'HTTPS or localhost HTTP' : 'HTTPS'} URLs: ${rawIssuers.join(', ')}.`,
+    );
+  }
+
+  // @solid/object's Agent resolves `.name` through vcardFn → foafName →
+  // URL-derived, and defaults to a URL-derived string rather than null; we
+  // drop the URL-derived fallback so the cache only stores real display
+  // names. `.photoUrl` reads VCARD.hasPhoto and returns null when absent.
+  const derivedName = deriveRealName(agent);
+  const photoUrl = agent.photoUrl ?? undefined;
+  return {
+    issuers,
+    ...(derivedName !== undefined && { name: derivedName }),
+    ...(photoUrl !== undefined && { photoUrl }),
+  };
+}
+
+export async function resolveOidcIssuers(
+  webIdUrl: string,
+  options: ResolveOidcIssuersOptions = {},
+): Promise<string[]> {
+  const profile = await resolveWebIdProfile(webIdUrl, options);
+  return profile.issuers;
+}
+
+/**
+ * Fetch the WebID Profile Document and return the wrapped
+ * `WebIDProfileAgent` (the `@solid/object`-style RDF wrapper) plus the
+ * issuer list that passed the HTTPS / localhost filter.
+ *
+ * This is the discovery primitive that backs `ReactiveFetch.profile`. It
+ * exists alongside `resolveWebIdProfile` (which returns a flat literal
+ * shape used by the UI cache) because the unified-wrapper API surface
+ * specifically wants the wrapped object — the cache is a separate concern
+ * and shouldn't pull a parsed RDF dataset into IndexedDB.
+ *
+ * TODO: when the colleague's planned standalone "WebID profile discovery"
+ * package ships, swap this implementation out for a thin call into it. The
+ * spec algorithm we follow here (Solid 26 WebID Algorithms section,
+ * https://htmlpreview.github.io/?https://github.com/solid/specification/blob/feat/solid26-webid/solid26.html#webid-algorithms)
+ * is the same algorithm that package will implement.
+ */
+export async function fetchWebIDProfile(
+  webIdUrl: string,
+  options: ResolveOidcIssuersOptions = {},
+): Promise<{ agent: WebIDProfileAgent; issuers: string[] }> {
+  const allowLocalhost = options.allowLocalhost ?? false;
+  const { agent, rawIssuers } = await fetchAndBuildAgent(webIdUrl);
+  if (rawIssuers.length === 0) throw new NoOidcIssuerError(webIdUrl);
+
+  const issuers = rawIssuers.filter((iss) => isAllowedIssuer(iss, allowLocalhost));
+  if (issuers.length === 0) {
+    throw new InvalidIssuerError(
+      webIdUrl,
+      rawIssuers[0]!,
+      `WebID ${webIdUrl} declared ${rawIssuers.length} solid:oidcIssuer value(s), none of which are valid ${allowLocalhost ? 'HTTPS or localhost HTTP' : 'HTTPS'} URLs: ${rawIssuers.join(', ')}.`,
+    );
+  }
+
+  return { agent, issuers };
+}
+
+// Internal: fetch the WebID document, parse it, build a WebIdAgent, and
+// also pull out the raw oidcIssuers without applying the issuer filter.
+// The two callers above each apply their own gating on top of this.
+async function fetchAndBuildAgent(
+  webIdUrl: string,
+): Promise<{ agent: WebIdAgent; rawIssuers: string[] }> {
   let response: Response;
   try {
     response = await globalThis.fetch(webIdUrl, {
@@ -116,38 +213,7 @@ export async function resolveWebIdProfile(
     webIdDataset,
     N3DataFactory,
   );
-
-  const rawIssuers = [...agent.oidcIssuers];
-  if (rawIssuers.length === 0) throw new NoOidcIssuerError(webIdUrl);
-
-  const issuers = rawIssuers.filter((iss) => isAllowedIssuer(iss, allowLocalhost));
-  if (issuers.length === 0) {
-    throw new InvalidIssuerError(
-      webIdUrl,
-      rawIssuers[0]!,
-      `WebID ${webIdUrl} declared ${rawIssuers.length} solid:oidcIssuer value(s), none of which are valid ${allowLocalhost ? 'HTTPS or localhost HTTP' : 'HTTPS'} URLs: ${rawIssuers.join(', ')}.`,
-    );
-  }
-
-  // @solid/object's Agent resolves `.name` through vcardFn → foafName →
-  // URL-derived, and defaults to a URL-derived string rather than null; we
-  // drop the URL-derived fallback so the cache only stores real display
-  // names. `.photoUrl` reads VCARD.hasPhoto and returns null when absent.
-  const derivedName = deriveRealName(agent);
-  const photoUrl = agent.photoUrl ?? undefined;
-  return {
-    issuers,
-    ...(derivedName !== undefined && { name: derivedName }),
-    ...(photoUrl !== undefined && { photoUrl }),
-  };
-}
-
-export async function resolveOidcIssuers(
-  webIdUrl: string,
-  options: ResolveOidcIssuersOptions = {},
-): Promise<string[]> {
-  const profile = await resolveWebIdProfile(webIdUrl, options);
-  return profile.issuers;
+  return { agent, rawIssuers: [...agent.oidcIssuers] };
 }
 
 function deriveRealName(agent: WebIdAgent): string | undefined {

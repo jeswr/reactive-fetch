@@ -1,7 +1,7 @@
 {
   "name": "@jeswr/solid-reactive-fetch",
   "version": "0.0.0",
-  "description": "Reactive authenticated fetch for Solid applications — auth is triggered automatically by 401s and webId reads, via a popup flow",
+  "description": "Reactive authenticated fetch for Solid applications — auth is triggered automatically by 401s and webId reads, via a popup flow. Public API mirrors the Solid browser extension's window.solid for use behind a unified wrapper.",
   "license": "MIT",
   "author": "Jesse Wright",
   "repository": {
@@ -60,7 +60,9 @@
     "fetch",
     "reactive",
     "webid",
-    "popup"
+    "webid-profile",
+    "popup",
+    "browser-extension"
   ],
   "devDependencies": {
     "@rdfjs/types": "^2.0.1",

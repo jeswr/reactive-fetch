@@ -170,7 +170,14 @@ describe('createReactiveFetch: fetch 401 retry', () => {
 
     const response = await pending;
     expect(response).toBe(retryResponse);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    // Filter by URL: a background profile fetch (against the WebID URL)
+    // may also fire after login, so count only the app-resource calls.
+    const appResourceCalls = fetchSpy.mock.calls.filter(([input]) =>
+      typeof input === 'string'
+        ? input === 'https://pod.example/doc'
+        : input instanceof Request && input.url === 'https://pod.example/doc',
+    );
+    expect(appResourceCalls).toHaveLength(1);
     expect(fake.authFetchCalls).toHaveLength(1);
   });
 
