@@ -11,7 +11,11 @@ import { describe, expect, test } from 'vitest';
 // against the same class imported from the root entry. Code splitting hoists
 // shared internals into a single chunk; this test pins that contract.
 
-const distDir = resolve(__dirname, '..', 'dist');
+// `__dirname` isn't defined under Vitest's ESM execution and `import.meta.url`
+// is rewritten by jsdom into a non-file:// URL (see comment in
+// security.test.ts), so we resolve against `process.cwd()` — vitest is
+// invoked from the package root, matching the codebase's existing pattern.
+const distDir = resolve(process.cwd(), 'dist');
 const rootEntry = resolve(distDir, 'index.js');
 const callbackEntry = resolve(distDir, 'callback', 'index.js');
 
