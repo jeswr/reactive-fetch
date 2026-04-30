@@ -1,8 +1,10 @@
 # Default agent for this repo when no workflow-specific agent is set.
-agent = 'copilot'
-# Default model for this repo: latest GPT model available via GitHub Copilot CLI.
-model = 'gpt-5.4'
-# Backup agent — falls back to Claude Code if Copilot is unavailable (subscription / network hiccup).
+# Switched from copilot → codex on 2026-04-30: copilot quota was exhausted
+# under roborev usage, so reviews now go through the configured ChatGPT
+# subscription. Empty model = let codex pick its configured default.
+agent = 'codex'
+model = ''
+# Backup agent — falls back to Claude Code if codex is unavailable (subscription / network hiccup).
 backup_agent = 'claude-code'
 # Backup model for this repo if the primary model fails.
 backup_model = ''
