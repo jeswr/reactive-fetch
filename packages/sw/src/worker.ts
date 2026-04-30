@@ -220,6 +220,32 @@ async function loadPersistedConfig(): Promise<WorkerConfig | null> {
   }
 }
 
+// Shared rehydration promise. The activate event fires once when the SW
+// first becomes active (or after an update); subsequent browser-triggered
+// terminations + restarts skip activate. The first fetch after such a
+// restart awaits this promise to lazily load the persisted handshake so
+// auth interception keeps working without forcing the page to reload and
+// re-handshake. Concurrent fetches share the same in-flight promise.
+let configRehydrationPromise: Promise<void> | null = null;
+
+async function ensureConfigLoaded(): Promise<void> {
+  if (config) return;
+  if (!configRehydrationPromise) {
+    configRehydrationPromise = (async () => {
+      const persisted = await loadPersistedConfig();
+      if (persisted && !config) {
+        // Don't clobber a handshake that arrived while we were loading.
+        config = persisted;
+      }
+    })().finally(() => {
+      // Drop the slot so a subsequent fetch can retry if persistence
+      // somehow fails transiently.
+      configRehydrationPromise = null;
+    });
+  }
+  await configRehydrationPromise;
+}
+
 // Concurrent fetches requiring auth each register a per-requestId
 // resolver here; the page replies to each individually. Single-flight
 // of the actual login is enforced page-side in `registerReactiveFetchSW`
@@ -312,14 +338,6 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
 self.addEventListener('fetch', (event: FetchEvent) => {
   const request = event.request;
 
-  // No config means no handshake has been received yet (and no
-  // persisted config from a prior session was found at activation
-  // time). Fall through to the browser default — we have no clientId
-  // to restore a Session under and no allowlist to consult.
-  if (!config) {
-    return;
-  }
-
   let url: URL;
   try {
     url = new URL(request.url);
@@ -331,8 +349,21 @@ self.addEventListener('fetch', (event: FetchEvent) => {
   // app shell, the SW bundle itself, and the (same-origin) callback
   // page all live here; auth-decorating any of them would either be a
   // no-op (no Solid auth needed) or actively break the popup/callback
-  // flow.
+  // flow. This check sits BEFORE the config gate so the same-origin
+  // skip applies even on a freshly-restarted worker that hasn't loaded
+  // its persisted config yet.
   if (url.origin === self.location.origin) {
+    return;
+  }
+
+  if (!config) {
+    // No in-memory config. Could be (a) a worker that has never had a
+    // handshake (page hasn't called `registerReactiveFetchSW` yet), or
+    // (b) a worker the browser killed and restarted, which skips the
+    // `activate` rehydration. We defer the decision behind a Promise
+    // so the first fetch after a restart awaits `loadPersistedConfig()`
+    // before falling through.
+    event.respondWith(handleFetchWithLazyConfig(request, url));
     return;
   }
 
@@ -349,6 +380,19 @@ self.addEventListener('fetch', (event: FetchEvent) => {
 
   event.respondWith(handleAuthFetch(request));
 });
+
+async function handleFetchWithLazyConfig(request: Request, url: URL): Promise<Response> {
+  await ensureConfigLoaded();
+  if (!config || !config.authOrigins.includes(url.origin)) {
+    // Still no config (no handshake ever issued, or persistence
+    // missing/corrupt), or the URL isn't in the allowlist. Pass
+    // through unauthenticated — equivalent to the listener returning
+    // without calling `respondWith`, but we have to do it ourselves
+    // because we already committed to `respondWith`.
+    return globalThis.fetch(request);
+  }
+  return handleAuthFetch(request);
+}
 
 async function handleAuthFetch(request: Request): Promise<Response> {
   // The fetch listener guarantees `config` is non-null before calling

@@ -168,12 +168,38 @@ describe('worker: fetch interception', () => {
     expect(event.respondWith).not.toHaveBeenCalled();
   });
 
-  test('without a handshake (config null) the fetch falls through', async () => {
+  test('without a handshake (config null, no persisted config) the fetch passes through unauthenticated', async () => {
     await loadWorker();
+
+    // The worker now lazily loads persisted config inside `respondWith`
+    // (because `activate` doesn't fire on every browser-triggered SW
+    // restart), so it DOES call respondWith — but with no config to
+    // load, the resolved Response must be a plain pass-through to
+    // globalThis.fetch. Stub fetch to verify that path.
+    const passthroughResponse = new Response('passthrough', { status: 200 });
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(passthroughResponse);
+
     const event = makeFakeFetchEvent(new Request(REMOTE_URL));
     scope.dispatch('fetch', event);
-    expect(event.respondWith).not.toHaveBeenCalled();
+    expect(event.respondWith).toHaveBeenCalledTimes(1);
+    const responsePromise = event.respondWith.mock.calls[0]?.[0] as Promise<Response>;
+    const response = await responsePromise;
+    expect(response).toBe(passthroughResponse);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    fetchSpy.mockRestore();
   });
+
+  // The lazy-rehydrate path inside `handleFetchWithLazyConfig` is
+  // exercised by the "without a handshake (config null, no persisted
+  // config)" test above (it asserts the passthrough route through
+  // `globalThis.fetch`). A standalone re-import test would be brittle:
+  // `vi.resetModules()` doesn't clear the listener map captured by the
+  // existing fake scope, so the new module's top-level
+  // `self.addEventListener(...)` calls would double-register and break
+  // every subsequent dispatch. The activate-time rehydrate path is
+  // covered separately ("handshake config is persisted to caches…").
 
   test('cross-origin request to a non-allowlisted origin falls through (no respondWith)', async () => {
     await loadWorker();
