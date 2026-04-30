@@ -1,0 +1,72 @@
+{
+  "name": "@jeswr/solid-reactive-fetch-sw",
+  "version": "0.0.0",
+  "description": "Service-worker variant of @jeswr/solid-reactive-fetch — intercepts the unmodified global fetch and transparently authenticates Solid requests, composing with any login UI (popup, prompt, custom).",
+  "license": "MIT",
+  "author": "Jesse Wright",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeswr/reactive-fetch.git",
+    "directory": "packages/sw"
+  },
+  "homepage": "https://github.com/jeswr/reactive-fetch/tree/main/packages/sw",
+  "bugs": "https://github.com/jeswr/reactive-fetch/issues",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.js",
+      "default": "./dist/worker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup && node scripts/write-worker-dts.mjs",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.test.json",
+    "clean": "rimraf dist"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@uvdsl/solid-oidc-client-browser": "^0.2.0"
+  },
+  "keywords": [
+    "solid",
+    "solid-oidc",
+    "oidc",
+    "dpop",
+    "authentication",
+    "fetch",
+    "service-worker",
+    "reactive",
+    "webid"
+  ],
+  "devDependencies": {
+    "@jeswr/solid-reactive-fetch-shared": "workspace:*",
+    "@types/node": "^25.6.0",
+    "@uvdsl/solid-oidc-client-browser": "^0.2.2",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^29.0.2"
+  }
+}

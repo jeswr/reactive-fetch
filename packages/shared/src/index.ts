@@ -35,3 +35,30 @@ export {
   __resetPopupStateForTests,
   type OpenLoginPopupOptions,
 } from './popup.js';
+
+// SW wire-protocol re-exports. `LOGIN_COMPLETE_MESSAGE_TYPE` collides with
+// the popup-flow constant above (different string values for different
+// protocols), so the sw-flavour is re-exported under an `SW_`-prefixed
+// alias here. Other sw constants don't collide and keep their canonical
+// names. Re-exporting from root (rather than relying on the `./sw`
+// subpath) lets DTS bundlers in consumer packages inline these types
+// without dangling subpath references in published .d.ts files.
+export {
+  LOGIN_COMPLETE_MESSAGE_TYPE as SW_LOGIN_COMPLETE_MESSAGE_TYPE,
+  LOGIN_REQUIRED_MESSAGE_TYPE,
+  LOGIN_FAILED_MESSAGE_TYPE,
+  REGISTER_HANDSHAKE_MESSAGE_TYPE,
+  REGISTER_ACK_MESSAGE_TYPE,
+  isLoginRequiredMessage,
+  isLoginCompleteMessage,
+  isLoginFailedMessage,
+  isRegisterHandshakeMessage,
+  isRegisterAckMessage,
+  type LoginRequiredMessage,
+  type LoginCompleteMessage,
+  type LoginFailedMessage,
+  type RegisterHandshakeMessage,
+  type RegisterAckMessage,
+  type ServiceWorkerInboundMessage,
+  type ServiceWorkerOutboundMessage,
+} from './sw/messages.js';
