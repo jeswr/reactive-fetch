@@ -191,15 +191,48 @@ describe('worker: fetch interception', () => {
     fetchSpy.mockRestore();
   });
 
-  // The lazy-rehydrate path inside `handleFetchWithLazyConfig` is
-  // exercised by the "without a handshake (config null, no persisted
-  // config)" test above (it asserts the passthrough route through
-  // `globalThis.fetch`). A standalone re-import test would be brittle:
-  // `vi.resetModules()` doesn't clear the listener map captured by the
-  // existing fake scope, so the new module's top-level
-  // `self.addEventListener(...)` calls would double-register and break
-  // every subsequent dispatch. The activate-time rehydrate path is
-  // covered separately ("handshake config is persisted to caches…").
+  test('after browser-triggered restart with persisted config, lazy rehydrate routes allowlisted fetch through auth flow', async () => {
+    // Seed the caches stub with a config BEFORE loading the worker —
+    // this models the second-lifetime scenario where a browser killed
+    // the SW after a prior handshake and is restarting it for a new
+    // fetch. There's no `register` and no `activate` in this test;
+    // only the lazy-rehydrate path inside `handleFetchWithLazyConfig`
+    // can populate `config`, so a respondWith that triggers the auth
+    // flow proves the rehydrate happened.
+    const fakeCaches = (globalThis as unknown as {
+      caches: { open(name: string): Promise<{ put(key: string, response: Response): Promise<void> }> };
+    }).caches;
+    const cache = await fakeCaches.open('reactive-fetch-sw-config-v1');
+    await cache.put(
+      `${ORIGIN}/__reactive-fetch-sw__/config`,
+      new Response(
+        JSON.stringify({
+          clientId: 'https://app.example/cid',
+          loginTimeoutMs: 60000,
+          authOrigins: ['https://pod.example.com'],
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+    );
+
+    await loadWorker();
+    const client = makeFakeClient(`${ORIGIN}/`);
+    scope.clients = [client];
+
+    const event = makeFakeFetchEvent(new Request(REMOTE_URL));
+    scope.dispatch('fetch', event);
+    expect(event.respondWith).toHaveBeenCalledTimes(1);
+
+    // Auth path: SessionCore.restore() against an empty IDB resolves
+    // with `isActive=false`, so the worker broadcasts login-required to
+    // the controlled clients. If the rehydrate had failed and the path
+    // had taken the passthrough branch, no broadcast would land.
+    await flushMacrotasks(8);
+    const loginRequired = client.postMessage.mock.calls
+      .map((c) => c[0] as { type?: string })
+      .filter((m) => m && m.type === LOGIN_REQUIRED_MESSAGE_TYPE);
+    expect(loginRequired).toHaveLength(1);
+  });
 
   test('cross-origin request to a non-allowlisted origin falls through (no respondWith)', async () => {
     await loadWorker();
