@@ -36,6 +36,7 @@ const baseOptions = () =>
     clientId: 'https://app.example/client.jsonld',
     callbackUrl: 'https://app.example/callback',
     loginDriver: vi.fn(async () => undefined),
+    authOrigins: ['https://pod.example'],
   }) as const;
 
 async function registerWithImmediateAck(loginDriver?: () => Promise<void>) {

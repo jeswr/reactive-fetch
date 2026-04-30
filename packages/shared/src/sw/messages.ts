@@ -55,6 +55,16 @@ export interface RegisterHandshakeMessage {
   readonly clientId: string;
   /** ms; how long the worker waits for a `login-complete` after dispatching `login-required`. */
   readonly loginTimeoutMs: number;
+  /**
+   * Origins (scheme + host + port) the worker is allowed to apply
+   * Solid auth to. URLs whose origin is NOT in this list fall through
+   * the worker untouched — including OIDC discovery / token endpoints
+   * served from the IDP, which must NOT be auth-decorated. The list is
+   * the page-side equivalent of the (removed) `match` predicate, made
+   * serialisable so it can cross postMessage and be persisted across
+   * service-worker restarts.
+   */
+  readonly authOrigins: readonly string[];
 }
 
 export interface RegisterAckMessage {
@@ -98,13 +108,18 @@ export function isLoginFailedMessage(value: unknown): value is LoginFailedMessag
 }
 
 export function isRegisterHandshakeMessage(value: unknown): value is RegisterHandshakeMessage {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    (value as { type?: unknown }).type === REGISTER_HANDSHAKE_MESSAGE_TYPE &&
-    typeof (value as { clientId?: unknown }).clientId === 'string' &&
-    typeof (value as { loginTimeoutMs?: unknown }).loginTimeoutMs === 'number'
-  );
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    (value as { type?: unknown }).type !== REGISTER_HANDSHAKE_MESSAGE_TYPE ||
+    typeof (value as { clientId?: unknown }).clientId !== 'string' ||
+    typeof (value as { loginTimeoutMs?: unknown }).loginTimeoutMs !== 'number'
+  ) {
+    return false;
+  }
+  const origins = (value as { authOrigins?: unknown }).authOrigins;
+  if (!Array.isArray(origins)) return false;
+  return origins.every((o) => typeof o === 'string');
 }
 
 export function isRegisterAckMessage(value: unknown): value is RegisterAckMessage {

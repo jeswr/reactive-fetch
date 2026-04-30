@@ -73,11 +73,15 @@ afterEach(() => {
 function sendHandshake(client = makeFakeClient(`${ORIGIN}/`), opts: {
   clientId?: string;
   loginTimeoutMs?: number;
+  authOrigins?: readonly string[];
 } = {}): typeof client {
   const handshake = {
     type: REGISTER_HANDSHAKE_MESSAGE_TYPE,
     clientId: opts.clientId ?? 'https://app.example/client.jsonld',
     loginTimeoutMs: opts.loginTimeoutMs ?? 5 * 60 * 1000,
+    // Default the test allowlist to the pod origin used by REMOTE_URL.
+    // Tests that need a different allowlist override.
+    authOrigins: opts.authOrigins ?? ['https://pod.example.com'],
   };
   scope.dispatch('message', makeFakeMessageEvent(handshake, client));
   return client;
@@ -97,6 +101,12 @@ describe('worker: lifecycle', () => {
     const event = makeFakeExtendableEvent();
     scope.dispatch('activate', event);
     expect(event.waitUntil).toHaveBeenCalledTimes(1);
+    // Activate is now async (rehydrates persisted config first), so
+    // `clients.claim()` only fires after the awaited Promise inside
+    // `event.waitUntil` resolves. Pull the Promise out and await it.
+    const waited = event.waitUntil.mock.calls[0]?.[0];
+    expect(waited).toBeInstanceOf(Promise);
+    await waited;
     expect(scope.clientsClaim).toHaveBeenCalledTimes(1);
   });
 
@@ -131,6 +141,7 @@ describe('worker: handshake', () => {
           type: REGISTER_HANDSHAKE_MESSAGE_TYPE,
           clientId: 'https://app.example/cid',
           loginTimeoutMs: 60000,
+          authOrigins: ['https://pod.example.com'],
         },
         fakePort,
       ),
@@ -162,6 +173,44 @@ describe('worker: fetch interception', () => {
     const event = makeFakeFetchEvent(new Request(REMOTE_URL));
     scope.dispatch('fetch', event);
     expect(event.respondWith).not.toHaveBeenCalled();
+  });
+
+  test('cross-origin request to a non-allowlisted origin falls through (no respondWith)', async () => {
+    await loadWorker();
+    // Allowlist only the pod; the third-party API below must not be
+    // auth-decorated even though it's cross-origin.
+    sendHandshake(undefined, { authOrigins: ['https://pod.example.com'] });
+
+    const event = makeFakeFetchEvent(new Request('https://thirdparty.example.com/api'));
+    scope.dispatch('fetch', event);
+
+    expect(event.respondWith).not.toHaveBeenCalled();
+  });
+
+  test('handshake config is persisted to caches so a restarted worker can rehydrate', async () => {
+    await loadWorker();
+    const event = makeFakeMessageEvent(
+      {
+        type: REGISTER_HANDSHAKE_MESSAGE_TYPE,
+        clientId: 'https://app.example/cid',
+        loginTimeoutMs: 60000,
+        authOrigins: ['https://pod.example.com'],
+      },
+      makeFakeClient(`${ORIGIN}/`),
+    );
+    scope.dispatch('message', event);
+    // The handshake handler calls `event.waitUntil(persistConfig(...))`.
+    // Pull the Promise out and await persistence.
+    const waited = event.waitUntil.mock.calls[0]?.[0];
+    expect(waited).toBeInstanceOf(Promise);
+    await waited;
+
+    // Subsequent activate should rehydrate the config from caches and
+    // claim clients without needing another handshake.
+    const activate = makeFakeExtendableEvent();
+    scope.dispatch('activate', activate);
+    await activate.waitUntil.mock.calls[0]?.[0];
+    expect(scope.clientsClaim).toHaveBeenCalled();
   });
 
   test('cross-origin request without active session broadcasts login-required to clients', async () => {

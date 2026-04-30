@@ -154,11 +154,71 @@ class WorkerSessionDatabase implements SessionDatabase {
 interface WorkerConfig {
   clientId: string;
   loginTimeoutMs: number;
+  /**
+   * Origin allowlist; only URLs whose `new URL(req.url).origin` is in
+   * this set get the auth treatment. Anything else falls through. The
+   * empty set disables interception entirely.
+   */
+  authOrigins: readonly string[];
 }
 
 let config: WorkerConfig | null = null;
 let session: SessionCore | null = null;
 let database: WorkerSessionDatabase | null = null;
+
+// ----- config persistence (survives SW restarts) ---------------------
+//
+// Service workers can be terminated by the browser at any time and
+// restarted on demand (e.g. on the next fetch event). Without
+// persistence the restarted worker has no `config` and falls through
+// every fetch unauthenticated until a page reloads and re-handshakes —
+// which can be never if the SW handles a navigation request. Persist
+// the handshake to the Cache API so a fresh worker can rehydrate
+// before its first fetch event runs.
+
+const CONFIG_CACHE = 'reactive-fetch-sw-config-v1';
+// Synthetic same-origin URL used as the cache key. Real network
+// requests never resolve here.
+const CONFIG_CACHE_KEY = '/__reactive-fetch-sw__/config';
+
+async function persistConfig(cfg: WorkerConfig): Promise<void> {
+  try {
+    const cache = await caches.open(CONFIG_CACHE);
+    await cache.put(
+      CONFIG_CACHE_KEY,
+      new Response(JSON.stringify(cfg), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+  } catch (err) {
+    debugWarn('Failed to persist worker config', err);
+  }
+}
+
+async function loadPersistedConfig(): Promise<WorkerConfig | null> {
+  try {
+    const cache = await caches.open(CONFIG_CACHE);
+    const response = await cache.match(CONFIG_CACHE_KEY);
+    if (!response) return null;
+    const raw = (await response.json()) as unknown;
+    if (
+      typeof raw !== 'object' ||
+      raw === null ||
+      typeof (raw as { clientId?: unknown }).clientId !== 'string' ||
+      typeof (raw as { loginTimeoutMs?: unknown }).loginTimeoutMs !== 'number'
+    ) {
+      return null;
+    }
+    const origins = (raw as { authOrigins?: unknown }).authOrigins;
+    if (!Array.isArray(origins) || !origins.every((o) => typeof o === 'string')) {
+      return null;
+    }
+    return raw as WorkerConfig;
+  } catch (err) {
+    debugWarn('Failed to load persisted worker config', err);
+    return null;
+  }
+}
 
 // Concurrent fetches requiring auth each register a per-requestId
 // resolver here; the page replies to each individually. Single-flight
@@ -176,7 +236,18 @@ self.addEventListener('install', (event: ExtendableEvent) => {
 });
 
 self.addEventListener('activate', (event: ExtendableEvent) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Restore the previous handshake's config (if any) so a worker
+      // restarted by the browser doesn't fall through every fetch
+      // unauthenticated until the next page reload.
+      const persisted = await loadPersistedConfig();
+      if (persisted) {
+        config = persisted;
+      }
+      await self.clients.claim();
+    })(),
+  );
 });
 
 // ----- page -> SW messages -------------------------------------------
@@ -189,7 +260,12 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
   const data = event.data as unknown;
 
   if (isRegisterHandshakeMessage(data)) {
-    config = { clientId: data.clientId, loginTimeoutMs: data.loginTimeoutMs };
+    const next: WorkerConfig = {
+      clientId: data.clientId,
+      loginTimeoutMs: data.loginTimeoutMs,
+      authOrigins: data.authOrigins,
+    };
+    config = next;
     // Reset session so the next fetch builds it under the (possibly
     // new) clientId. Close the prior IDB handle before dropping it so
     // we don't leak a transaction across handshake re-issues.
@@ -198,6 +274,10 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
       database.close();
     }
     database = null;
+    // Persist the new config so a SW restart can rehydrate it without
+    // waiting for a fresh handshake. `event.waitUntil` keeps the worker
+    // alive until persistence completes.
+    event.waitUntil(persistConfig(next));
     const ack: RegisterAckMessage = {
       type: REGISTER_ACK_MESSAGE_TYPE,
       clientId: data.clientId,
@@ -232,13 +312,12 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
 self.addEventListener('fetch', (event: FetchEvent) => {
   const request = event.request;
 
-  // We only intercept GET-style cacheable+retryable requests + JSON/
-  // RDF mutations. The match decision belongs to the page; here we
-  // just check whether the page has registered (config) AND whether
-  // the URL parses. Anything not configured falls through to the
-  // browser's default fetch.
+  // No config means no handshake has been received yet (and no
+  // persisted config from a prior session was found at activation
+  // time). Fall through to the browser default — we have no clientId
+  // to restore a Session under and no allowlist to consult.
   if (!config) {
-    return; // not yet configured; let the browser handle it.
+    return;
   }
 
   let url: URL;
@@ -248,19 +327,23 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     return;
   }
 
-  // Skip same-origin requests to assets we ourselves serve. The page
-  // controls this via the `match` predicate it installed at register
-  // time, but we also have a default exclusion: same-origin GETs to
-  // typical static-asset extensions never get the auth treatment.
-  // (Pod URLs are remote; the default is fine.)
+  // Same-origin requests are NEVER auth-decorated by the worker. The
+  // app shell, the SW bundle itself, and the (same-origin) callback
+  // page all live here; auth-decorating any of them would either be a
+  // no-op (no Solid auth needed) or actively break the popup/callback
+  // flow.
   if (url.origin === self.location.origin) {
-    // Worker doesn't know the page-side `match` because we can't
-    // serialise functions across postMessage. By convention, a same-
-    // origin request never needs Solid auth in the SW variant — if
-    // you DO need it (e.g. a same-origin pod), use the popup or
-    // prompt package instead, or wrap fetches manually. Letting
-    // them through avoids breaking the app shell loading the SW
-    // bundle.
+    return;
+  }
+
+  // Allowlist check: only origins the consumer explicitly opted in via
+  // `authOrigins` get the auth treatment. This is the serialisable
+  // replacement for the (removed) `match` predicate. URLs outside the
+  // list — including OIDC discovery / token endpoints served from the
+  // IDP — fall through untouched, so login flows aren't deadlocked by
+  // re-entrant interception and unrelated third-party APIs aren't
+  // decorated with DPoP-bound auth headers they don't expect.
+  if (!config.authOrigins.includes(url.origin)) {
     return;
   }
 

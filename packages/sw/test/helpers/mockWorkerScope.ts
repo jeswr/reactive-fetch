@@ -115,8 +115,39 @@ export function installFakeWorkerScope(
     location: { origin },
   };
 
+  // In-memory CacheStorage stub. The worker uses `caches.open(...).put(key, response)`
+  // and `caches.open(...).match(key)` for handshake-config persistence; tests
+  // need a working facade so the put/match round-trip behaves like a real
+  // cache. Keys are normalised to URL strings (the real Cache API does the
+  // same — `Request` URLs and absolute URL strings hash to the same entry).
+  const cacheStores = new Map<string, Map<string, Response>>();
+  const fakeCaches = {
+    async open(name: string) {
+      let store = cacheStores.get(name);
+      if (!store) {
+        store = new Map();
+        cacheStores.set(name, store);
+      }
+      const s = store;
+      return {
+        async put(key: string | Request, response: Response) {
+          const url = typeof key === 'string' ? new URL(key, origin).toString() : key.url;
+          // Real Cache.put consumes the body of the response, so we clone
+          // before storing — matches the contract callers rely on.
+          s.set(url, response.clone());
+        },
+        async match(key: string | Request): Promise<Response | undefined> {
+          const url = typeof key === 'string' ? new URL(key, origin).toString() : key.url;
+          const stored = s.get(url);
+          return stored ? stored.clone() : undefined;
+        },
+      };
+    },
+  };
+
   const restoreSelf = captureAndOverride('self', fakeSelf);
   const restoreClient = captureAndOverride('Client', FakeClientCtor);
+  const restoreCaches = captureAndOverride('caches', fakeCaches);
 
   return {
     listeners,
@@ -143,6 +174,7 @@ export function installFakeWorkerScope(
     uninstall() {
       restoreSelf();
       restoreClient();
+      restoreCaches();
     },
   };
 }
@@ -172,10 +204,17 @@ export function makeFakeExtendableEvent(): FakeExtendableEvent {
 export interface FakeMessageEvent {
   data: unknown;
   source: unknown;
+  /**
+   * Real `ExtendableMessageEvent` exposes `waitUntil`. The worker uses
+   * it on the handshake to keep itself alive across async config
+   * persistence; tests can read this mock to assert that persistence
+   * was triggered.
+   */
+  waitUntil: ReturnType<typeof vi.fn>;
 }
 
 export function makeFakeMessageEvent(data: unknown, source: unknown): FakeMessageEvent {
-  return { data, source };
+  return { data, source, waitUntil: vi.fn() };
 }
 
 export interface FakeFetchEvent {

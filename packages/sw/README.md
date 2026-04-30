@@ -65,9 +65,16 @@ await registerReactiveFetchSW({
   clientId: 'https://myapp.example/solid-client.jsonld',
   callbackUrl: 'https://myapp.example/reactive-fetch-callback',
   loginDriver: () => rfp.webId.then(() => undefined),
+  // Required: explicit allowlist of origins the SW is allowed to apply
+  // Solid auth to. URLs outside this list (including OIDC discovery /
+  // token endpoints from the IDP, and unrelated third-party APIs) fall
+  // through the worker untouched. Same-origin requests are always
+  // skipped regardless of this list.
+  authOrigins: ['https://pod.example'],
 });
 
-// From here on, plain `fetch` calls to remote pods get auth transparently.
+// From here on, plain `fetch` calls to allowlisted origins get auth
+// transparently. Anything outside `authOrigins` runs as a normal fetch.
 const res = await fetch('https://pod.example/alice/private');
 ```
 
@@ -175,11 +182,11 @@ becomes a no-op.
 - Same-origin pods need a different approach (see above).
 - The SW must be served from the same origin as your app. That's the
   shared-IndexedDB requirement and is non-negotiable.
-- The `match` predicate runs on the page side at registration time;
-  the worker uses a narrower default (skip same-origin) because
-  functions can't be serialised across `postMessage`. A future
-  iteration could install the predicate's source code into the worker
-  via the handshake, but for now the default is enforced.
+- Auth scope is controlled by the `authOrigins` allowlist (a list of
+  scheme+host+port strings) rather than a JS predicate, because
+  functions can't be serialised across `postMessage`. URL-pattern
+  matching beyond origins (e.g. "only `/private/*`") isn't supported
+  yet — file an issue if you need it.
 - The SW currently ignores Range requests / streaming bodies in the
   retry path — `Request.clone()` covers most cases but `ReadableStream`
   bodies that pre-consumed before the 401 will fail the retry. Use

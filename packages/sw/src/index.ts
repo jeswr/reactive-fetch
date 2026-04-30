@@ -116,6 +116,22 @@ export interface RegisterReactiveFetchSWOptions {
    * to the worker as part of the registration handshake.
    */
   loginTimeoutMs?: number;
+  /**
+   * Origins (scheme + host + port, e.g. `https://pod.example`) the
+   * worker is allowed to apply Solid auth to. URLs whose origin is not
+   * on this list fall through the worker untouched. This is the
+   * serialisable replacement for the (removed) `match` predicate; it
+   * MUST include every origin that hosts a private resource your app
+   * fetches and MUST NOT include OIDC discovery / token endpoints (the
+   * IDP serves those without DPoP-bound auth headers — applying them
+   * would break login).
+   *
+   * Required and non-empty: an empty list disables interception, which
+   * defeats the purpose of installing the SW. Pass at least one origin
+   * (typically the user's pod root) to opt in. Same-origin requests
+   * never get auth applied regardless of this list.
+   */
+  authOrigins: readonly string[];
 }
 
 export interface ReactiveFetchSWRegistration {
@@ -157,7 +173,36 @@ export async function registerReactiveFetchSW(
     loginDriver,
     clientId,
     loginTimeoutMs = DEFAULT_LOGIN_TIMEOUT_MS,
+    authOrigins,
   } = options;
+
+  // Reject obviously-broken `authOrigins` here so misconfiguration fails
+  // synchronously at register time rather than silently turning the SW
+  // into a passthrough at fetch time. We only enforce a non-empty list
+  // and that each entry parses as a URL origin; origin-membership at
+  // fetch time is still authoritative.
+  if (!Array.isArray(authOrigins) || authOrigins.length === 0) {
+    throw new Error(
+      'registerReactiveFetchSW: `authOrigins` is required and must contain at least one origin. ' +
+        'Pass the origin(s) of every resource your app needs Solid auth for, e.g. ["https://pod.example"].',
+    );
+  }
+  const normalisedAuthOrigins = authOrigins.map((entry) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(entry);
+    } catch {
+      throw new Error(
+        `registerReactiveFetchSW: \`authOrigins\` entry "${entry}" is not a valid origin.`,
+      );
+    }
+    if (parsed.origin !== entry) {
+      throw new Error(
+        `registerReactiveFetchSW: \`authOrigins\` entry "${entry}" must be an origin (scheme + host + port), not a URL with a path. Got origin "${parsed.origin}".`,
+      );
+    }
+    return parsed.origin;
+  });
 
   const registration = await navigator.serviceWorker.register(swUrl, {
     type: 'module',
@@ -219,6 +264,7 @@ export async function registerReactiveFetchSW(
     type: REGISTER_HANDSHAKE_MESSAGE_TYPE,
     clientId,
     loginTimeoutMs,
+    authOrigins: normalisedAuthOrigins,
   });
 
   return {
