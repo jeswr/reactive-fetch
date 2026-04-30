@@ -75,10 +75,10 @@ export {
   SessionRestoreFailedError,
   WebIdProfileError,
   WebIdPromptCancelledError,
+  WebIDProfileAgent,
   type ReactiveFetchErrorCode,
   type WebIDProfile,
 } from '@jeswr/solid-reactive-fetch-shared';
-export { WebIDProfileAgent } from '@jeswr/solid-reactive-fetch-shared/callback';
 
 export interface ReactiveFetchOptions {
   clientId: string;

@@ -1,4 +1,4 @@
-import { InvalidWebIdError } from '@jeswr/solid-reactive-fetch-shared';
+import { InvalidWebIdError, type SharedCallbackOptions } from '@jeswr/solid-reactive-fetch-shared';
 import {
   type CachedWebId,
   driveLoginFromWebId,
@@ -7,7 +7,6 @@ import {
   readWebIdFromQueryOrNull,
   runOidcRedirectIfPresent,
   validateWebIdSyncStrict,
-  type SharedCallbackOptions,
 } from '@jeswr/solid-reactive-fetch-shared/callback';
 import { renderCachedWebIdsList, renderPromptUi, type CachedWebIdsUi } from './ui.js';
 

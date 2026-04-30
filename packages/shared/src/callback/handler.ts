@@ -214,12 +214,18 @@ export async function driveLoginFromWebId(
   });
 
   if (profile.issuers.length === 1) {
-    callbacks.onLoginStart();
+    // Keep the active UI alive across the redirect setup so that an
+    // exception from `beginSolidLogin` (network failure, mis-configured
+    // IDP discovery, etc.) can be surfaced via `onError` on a still-mounted
+    // form. `onLoginStart` only fires once the IDP navigation is in flight,
+    // at which point the UI is about to be torn down by the navigation.
     try {
       await beginSolidLogin(options, profile.issuers[0]!);
     } catch (err) {
       callbacks.onError(describeError(err));
+      return;
     }
+    callbacks.onLoginStart();
     return;
   }
 
