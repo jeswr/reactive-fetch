@@ -28,6 +28,12 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   target: 'es2022',
-  splitting: false,
+  // ESM code splitting is required so the inlined shared classes
+  // (`InvalidWebIdError`, `LoginFailedError`, etc.) live in a single
+  // chunk shared by both `index` and `callback/index`. Without it,
+  // each entry would carry its own copy of the class definitions and
+  // `instanceof` checks would fail when the same class is imported
+  // through both subpaths in the same realm.
+  splitting: true,
   noExternal: [/^@jeswr\/solid-reactive-fetch-shared(\/.*)?$/],
 });
