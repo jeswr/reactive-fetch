@@ -293,16 +293,26 @@ describe('createReactiveFetchPrompt: happy path & URL encoding', () => {
     const popup = createMockPopup();
     stub.nextPopup(popup);
 
+    // After login completes, the factory rebuilds the Session via
+    // `rebuildSessionBootstrap` (sidesteps stale internal restore state in
+    // the upstream uvdsl client). Gate the active-flipping restore on the
+    // rebuild — the construction-time restore must stay inert so the
+    // initial `restorePromise` doesn't make `ensureLoggedIn` short-circuit
+    // and skip the popup we're testing.
+    let isRebuild = false;
+    FakeSession.onConstruct = (s) => {
+      if (!isRebuild) return;
+      s.restoreImpl = async () => {
+        s.isActive = true;
+        s.webId = 'https://alice.example/profile#me';
+      };
+    };
     const rf = createReactiveFetchPrompt({
       clientId: 'https://app.example/id',
       callbackUrl: 'https://app.example/callback',
       prompt: () => 'https://alice.example/profile#me',
     });
-    const fake = FakeSession.lastInstance!;
-    fake.restoreImpl = async () => {
-      fake.isActive = true;
-      fake.webId = 'https://alice.example/profile#me';
-    };
+    isRebuild = true;
 
     const pending = rf.webId;
     await completeLoginPopup(popup);
@@ -322,16 +332,20 @@ describe('createReactiveFetchPrompt: happy path & URL encoding', () => {
     const popup = createMockPopup();
     stub.nextPopup(popup);
 
+    let isRebuild = false;
+    FakeSession.onConstruct = (s) => {
+      if (!isRebuild) return;
+      s.restoreImpl = async () => {
+        s.isActive = true;
+        s.webId = 'https://alice.example/profile#me';
+      };
+    };
     const rf = createReactiveFetchPrompt({
       clientId: 'https://app.example/id',
       callbackUrl: '/callback',
       prompt: () => 'https://alice.example/profile#me',
     });
-    const fake = FakeSession.lastInstance!;
-    fake.restoreImpl = async () => {
-      fake.isActive = true;
-      fake.webId = 'https://alice.example/profile#me';
-    };
+    isRebuild = true;
 
     const pending = rf.webId;
     await completeLoginPopup(popup);
@@ -348,16 +362,20 @@ describe('createReactiveFetchPrompt: happy path & URL encoding', () => {
     const popup = createMockPopup();
     stub.nextPopup(popup);
 
+    let isRebuild = false;
+    FakeSession.onConstruct = (s) => {
+      if (!isRebuild) return;
+      s.restoreImpl = async () => {
+        s.isActive = true;
+        s.webId = 'https://alice.example/profile#me';
+      };
+    };
     const rf = createReactiveFetchPrompt({
       clientId: 'https://app.example/id',
       callbackUrl: 'https://app.example/callback?source=app',
       prompt: () => 'https://alice.example/profile#me',
     });
-    const fake = FakeSession.lastInstance!;
-    fake.restoreImpl = async () => {
-      fake.isActive = true;
-      fake.webId = 'https://alice.example/profile#me';
-    };
+    isRebuild = true;
 
     const pending = rf.webId;
     await completeLoginPopup(popup);
@@ -383,17 +401,21 @@ describe('createReactiveFetchPrompt: allowLocalhost', () => {
       const popup = createMockPopup();
       stub.nextPopup(popup);
 
+      let isRebuild = false;
+      FakeSession.onConstruct = (s) => {
+        if (!isRebuild) return;
+        s.restoreImpl = async () => {
+          s.isActive = true;
+          s.webId = url;
+        };
+      };
       const rf = createReactiveFetchPrompt({
         clientId: 'https://app.example/id',
         callbackUrl: 'https://app.example/callback',
         allowLocalhost: true,
         prompt: () => url,
       });
-      const fake = FakeSession.lastInstance!;
-      fake.restoreImpl = async () => {
-        fake.isActive = true;
-        fake.webId = url;
-      };
+      isRebuild = true;
 
       const pending = rf.webId;
       await completeLoginPopup(popup);
@@ -423,16 +445,20 @@ describe('createReactiveFetchPrompt: concurrent reads (single-flight)', () => {
 
     const promptFn = vi.fn(() => 'https://alice.example/profile#me');
 
+    let isRebuild = false;
+    FakeSession.onConstruct = (s) => {
+      if (!isRebuild) return;
+      s.restoreImpl = async () => {
+        s.isActive = true;
+        s.webId = 'https://alice.example/profile#me';
+      };
+    };
     const rf = createReactiveFetchPrompt({
       clientId: 'https://app.example/id',
       callbackUrl: '/callback',
       prompt: promptFn,
     });
-    const fake = FakeSession.lastInstance!;
-    fake.restoreImpl = async () => {
-      fake.isActive = true;
-      fake.webId = 'https://alice.example/profile#me';
-    };
+    isRebuild = true;
 
     const p1 = rf.webId;
     const p2 = rf.webId;
@@ -452,16 +478,20 @@ describe('createReactiveFetchPrompt: concurrent reads (single-flight)', () => {
     stub.nextPopup(popup);
     const promptFn = vi.fn(() => 'https://alice.example/profile#me');
 
+    let isRebuild = false;
+    FakeSession.onConstruct = (s) => {
+      if (!isRebuild) return;
+      s.restoreImpl = async () => {
+        s.isActive = true;
+        s.webId = 'https://alice.example/profile#me';
+      };
+    };
     const rf = createReactiveFetchPrompt({
       clientId: 'https://app.example/id',
       callbackUrl: '/callback',
       prompt: promptFn,
     });
-    const fake = FakeSession.lastInstance!;
-    fake.restoreImpl = async () => {
-      fake.isActive = true;
-      fake.webId = 'https://alice.example/profile#me';
-    };
+    isRebuild = true;
 
     const p1 = rf.webId;
     const p2 = rf.webId;
@@ -480,16 +510,20 @@ describe('createReactiveFetchPrompt: solid.login imperative path', () => {
     stub.nextPopup(popup);
 
     const promptFn = vi.fn(() => 'should-never-be-called');
+    let isRebuild = false;
+    FakeSession.onConstruct = (s) => {
+      if (!isRebuild) return;
+      s.restoreImpl = async () => {
+        s.isActive = true;
+        s.webId = 'https://alice.example/profile#me';
+      };
+    };
     const rf = createReactiveFetchPrompt({
       clientId: 'https://app.example/id',
       callbackUrl: '/callback',
       prompt: promptFn,
     });
-    const fake = FakeSession.lastInstance!;
-    fake.restoreImpl = async () => {
-      fake.isActive = true;
-      fake.webId = 'https://alice.example/profile#me';
-    };
+    isRebuild = true;
 
     const pending = rf.solid.login('https://alice.example/profile#me');
     await completeLoginPopup(popup);

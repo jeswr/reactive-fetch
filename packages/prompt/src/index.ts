@@ -35,6 +35,7 @@ import {
   ensureRestored,
   InvalidWebIdError,
   openLoginPopup,
+  rebuildSessionBootstrap,
   SessionRestoreFailedError,
   WebIdPromptCancelledError,
   type WebIDProfile,
@@ -155,7 +156,15 @@ export function createReactiveFetchPrompt(
     prompt: promptFn,
   } = options;
 
-  const { session } = createSessionBootstrap(initialClientId);
+  // `session` must be reassignable because a successful popup login writes
+  // the new DPoP keypair + refresh token to IndexedDB, and the construction-
+  // time `Session` instance can hold internal state that prevents `restore()`
+  // from picking the new entry up cleanly. After the popup closes we replace
+  // the instance via `rebuildSessionBootstrap` so subsequent reads/fetches
+  // see the freshly-restored session. Closures over `session` in the
+  // accessors below resolve the binding on each access, so the swap is
+  // observed immediately.
+  let { session } = createSessionBootstrap(initialClientId);
 
   let currentClientId: string | undefined = initialClientId;
   let profileSnapshot: WebIDProfile | null = null;
@@ -181,11 +190,40 @@ export function createReactiveFetchPrompt(
   const ensureLoggedIn = (overrideWebId?: string): Promise<string> => {
     if (loginPromise) return loginPromise;
 
-    if (session.isActive && session.webId) {
-      if (profileSnapshot === null && profileFetchInFlight === null) {
-        void refreshProfile(session.webId);
+    // Validate `overrideWebId` BEFORE any active-session short-circuit so
+    // that `solid.login(webId)` is treated as an explicit login request:
+    // a malformed WebID is rejected even when another user is signed in,
+    // and a different WebID forces a fresh login (the popup overwrites
+    // the IDB session). Only an exact match with the active `session.webId`
+    // is treated as idempotent and short-circuits without opening a popup.
+    let validatedOverride: string | undefined;
+    if (overrideWebId !== undefined) {
+      try {
+        validatedOverride = validateWebIdSyncStrict(overrideWebId, {
+          allowLocalhost: allowLocalhost ?? false,
+        });
+      } catch (err) {
+        return Promise.reject(
+          err instanceof InvalidWebIdError
+            ? err
+            : new InvalidWebIdError(overrideWebId, undefined, { cause: err }),
+        );
       }
-      return Promise.resolve(session.webId);
+    }
+
+    if (session.isActive && session.webId) {
+      const idempotent =
+        validatedOverride === undefined || validatedOverride === session.webId;
+      if (idempotent) {
+        if (profileSnapshot === null && profileFetchInFlight === null) {
+          void refreshProfile(session.webId);
+        }
+        return Promise.resolve(session.webId);
+      }
+      // Different WebID supplied while a session is active — caller wants
+      // to switch users. Fall through to the popup flow; the IDP redirect
+      // overwrites the IDB-stored session, and we rebuild our `Session`
+      // reference below so the swap is observed locally.
     }
 
     // Synchronously: collect a WebID. If the caller already gave one
@@ -193,32 +231,26 @@ export function createReactiveFetchPrompt(
     // OS-native prompt. `window.prompt` is blocking, so the user-gesture
     // credit is still active when it returns and `window.open` below
     // succeeds.
-    let rawWebId: string | null;
-    if (overrideWebId !== undefined) {
-      rawWebId = overrideWebId;
+    let validatedWebId: string;
+    if (validatedOverride !== undefined) {
+      validatedWebId = validatedOverride;
     } else {
       const promptImpl = promptFn ?? defaultPrompt;
-      rawWebId = promptImpl(promptMessage ?? 'Enter your WebID URL');
-    }
-
-    if (rawWebId === null) {
-      return Promise.reject(new WebIdPromptCancelledError());
-    }
-
-    let validatedWebId: string;
-    try {
-      validatedWebId = validateWebIdSyncStrict(rawWebId, {
-        allowLocalhost: allowLocalhost ?? false,
-      });
-    } catch (err) {
-      // Surface validation errors as InvalidWebIdError so callers can
-      // distinguish them from network/login failures. The shared validator
-      // throws this type already; rethrowing keeps the typed-error contract.
-      return Promise.reject(
-        err instanceof InvalidWebIdError
-          ? err
-          : new InvalidWebIdError(rawWebId, undefined, { cause: err }),
-      );
+      const rawWebId = promptImpl(promptMessage ?? 'Enter your WebID URL');
+      if (rawWebId === null) {
+        return Promise.reject(new WebIdPromptCancelledError());
+      }
+      try {
+        validatedWebId = validateWebIdSyncStrict(rawWebId, {
+          allowLocalhost: allowLocalhost ?? false,
+        });
+      } catch (err) {
+        return Promise.reject(
+          err instanceof InvalidWebIdError
+            ? err
+            : new InvalidWebIdError(rawWebId, undefined, { cause: err }),
+        );
+      }
     }
 
     const popupUrl = appendWebIdParam(callbackUrl, validatedWebId);
@@ -227,6 +259,13 @@ export function createReactiveFetchPrompt(
     const pending: Promise<string> = (async () => {
       try {
         await popupPromise;
+        // The popup wrote a fresh DPoP keypair + refresh token to IDB.
+        // Rebuild the Session instance so it doesn't carry stale internal
+        // restore state from the construction-time restore — without this,
+        // `ensureRestored` can return early and miss the popup-written
+        // entry, surfacing as `SessionRestoreFailedError` here.
+        const fresh = rebuildSessionBootstrap(currentClientId ?? initialClientId).session;
+        session = fresh;
         await ensureRestored(session, true);
         if (!session.isActive || !session.webId) {
           throw new SessionRestoreFailedError();
@@ -348,11 +387,16 @@ interface Retryable {
 
 function prepareRetryable(input: RequestInfo | URL, init?: RequestInit): Retryable {
   if (input instanceof Request) {
-    const first = input.clone();
-    const second = input.clone();
+    // `globalThis.fetch(request, init)` overlays `init` on top of `request`'s
+    // properties (method, headers, body, …) per the Fetch spec. Cloning the
+    // bare request and dropping `init` would send the unauthenticated
+    // request with the wrong overrides — a non-401 200 OK could come back
+    // for the wrong method/headers/body. Materialize the merged Request
+    // once so both the initial fetch and the retry inherit the overrides.
+    const merged = init ? new Request(input, init) : input;
     return {
-      request: first,
-      retry: { input: second, init },
+      request: merged.clone(),
+      retry: { input: merged.clone() },
     };
   }
 
