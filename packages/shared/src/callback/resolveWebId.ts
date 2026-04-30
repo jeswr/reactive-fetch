@@ -205,4 +205,3 @@ function isAllowedIssuer(issuer: string, allowLocalhost: boolean): boolean {
   }
   return false;
 }
-

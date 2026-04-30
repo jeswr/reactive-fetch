@@ -4,7 +4,7 @@ import {
   __resetPopupStateForTests,
   openLoginPopup,
 } from './popup.js';
-import { PopupBlockedError, PopupClosedError } from './errors.js';
+import { PopupBlockedError, PopupClosedError, PopupTimeoutError } from './errors.js';
 import { createMockPopup } from '../test/helpers/mockPopup.js';
 import { installMockWindowOpen, type MockWindowOpenStub } from '../test/helpers/mockWindowOpen.js';
 
@@ -91,6 +91,28 @@ describe('openLoginPopup: failure modes', () => {
     const err = await caught;
     expect(err).toBeInstanceOf(PopupClosedError);
     expect((err as PopupClosedError).code).toBe('popup_closed');
+  });
+
+  test('rejects with PopupTimeoutError when the popup neither completes nor closes within timeoutMs', async () => {
+    vi.useFakeTimers();
+    const popup = createMockPopup();
+    stub.nextPopup(popup);
+
+    const pending = openLoginPopup({
+      callbackUrl: '/callback',
+      pollIntervalMs: 10_000,
+      timeoutMs: 100,
+    });
+    const caught = pending.catch((e: unknown) => e);
+
+    await vi.advanceTimersByTimeAsync(150);
+
+    const err = await caught;
+    expect(err).toBeInstanceOf(PopupTimeoutError);
+    expect((err as PopupTimeoutError).code).toBe('popup_timeout');
+    expect((err as PopupTimeoutError).timeoutMs).toBe(100);
+    // Timeout path must close the popup.
+    expect(popup.closeCallCount).toBe(1);
   });
 
   test('ignores messages whose origin does not match window.location.origin', async () => {

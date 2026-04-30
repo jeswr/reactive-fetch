@@ -49,18 +49,36 @@
 // =====================================================================
 
 import {
+  authFetch,
   createSessionBootstrap,
   ensureRestored,
-  authFetch,
-} from './session.js';
-import { openLoginPopup } from './popup.js';
-import { fetchWebIDProfile } from './callback/resolveWebId.js';
-import { SessionRestoreFailedError } from './errors.js';
-import type { WebIDProfile } from './WebIDProfile.js';
+  openLoginPopup,
+  SessionRestoreFailedError,
+  type WebIDProfile,
+} from '@jeswr/solid-reactive-fetch-shared';
+import { fetchWebIDProfile } from '@jeswr/solid-reactive-fetch-shared/callback';
 
-export * from './errors.js';
-export type { WebIDProfile } from './WebIDProfile.js';
-export { WebIDProfileAgent } from './callback/resolveWebId.js';
+// Re-export everything the public API surfaces. Errors + WebIDProfile types
+// are owned by `@jeswr/solid-reactive-fetch-shared` now, but historically
+// they lived in this package and the existing API surface depends on them
+// being importable from `@jeswr/solid-reactive-fetch`.
+export {
+  InvalidIssuerError,
+  InvalidWebIdError,
+  LoginFailedError,
+  NoOidcIssuerError,
+  OriginMismatchError,
+  PopupBlockedError,
+  PopupClosedError,
+  PopupTimeoutError,
+  ReactiveFetchError,
+  SessionRestoreFailedError,
+  WebIdProfileError,
+  WebIdPromptCancelledError,
+  type ReactiveFetchErrorCode,
+  type WebIDProfile,
+} from '@jeswr/solid-reactive-fetch-shared';
+export { WebIDProfileAgent } from '@jeswr/solid-reactive-fetch-shared/callback';
 
 export interface ReactiveFetchOptions {
   clientId: string;

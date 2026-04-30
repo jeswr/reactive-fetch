@@ -24,8 +24,8 @@ vi.mock('@uvdsl/solid-oidc-client-browser', () => ({
 }));
 
 let mountCallback: typeof import('./index.js').mountCallback;
-let __resetWebIdCacheForTests: typeof import('./webidCache.js').__resetWebIdCacheForTests;
-let rememberWebId: typeof import('./webidCache.js').rememberWebId;
+let __resetWebIdCacheForTests: typeof import('@jeswr/solid-reactive-fetch-shared/callback').__resetWebIdCacheForTests;
+let rememberWebId: typeof import('@jeswr/solid-reactive-fetch-shared/callback').rememberWebId;
 
 const PROFILE_TURTLE = `
   @prefix solid: <http://www.w3.org/ns/solid/terms#> .
@@ -48,7 +48,7 @@ beforeEach(async () => {
 
   // Dynamic import so the vi.mock above is in effect.
   ({ mountCallback } = await import('./index.js'));
-  ({ __resetWebIdCacheForTests, rememberWebId } = await import('./webidCache.js'));
+  ({ __resetWebIdCacheForTests, rememberWebId } = await import('@jeswr/solid-reactive-fetch-shared/callback'));
   __resetWebIdCacheForTests();
 
   // Default to no `?code`/`?state` query params so mountCallback takes the
@@ -166,7 +166,7 @@ describe('mountCallback: text-input submit remembers WebID on success', () => {
       await flush();
     }
 
-    const { getCachedWebIds } = await import('./webidCache.js');
+    const { getCachedWebIds } = await import('@jeswr/solid-reactive-fetch-shared/callback');
     const entries = getCachedWebIds();
     expect(entries).toHaveLength(1);
     expect(entries[0]?.webId).toBe('https://alice.example/profile#me');

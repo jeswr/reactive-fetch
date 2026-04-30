@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { LOGIN_COMPLETE_MESSAGE_TYPE, __resetPopupStateForTests } from './popup.js';
-import { __resetSessionCacheForTests } from './session.js';
+import {
+  LOGIN_COMPLETE_MESSAGE_TYPE,
+  __resetPopupStateForTests,
+  __resetSessionCacheForTests,
+} from '@jeswr/solid-reactive-fetch-shared';
 import { createMockPopup, type MockPopup } from '../test/helpers/mockPopup.js';
 import { installMockWindowOpen, type MockWindowOpenStub } from '../test/helpers/mockWindowOpen.js';
 
@@ -458,7 +461,9 @@ describe('createReactiveFetch: restore observability', () => {
   });
 
   test('post-login session inactivity throws SessionRestoreFailedError', async () => {
-    const { SessionRestoreFailedError, ReactiveFetchError } = await import('./errors.js');
+    const { SessionRestoreFailedError, ReactiveFetchError } = await import(
+      '@jeswr/solid-reactive-fetch-shared'
+    );
     const popup = createMockPopup();
     stub.nextPopup(popup);
 

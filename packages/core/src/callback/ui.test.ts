@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { renderCachedWebIdsList, renderPromptUi } from './ui.js';
 import {
   IssuerPickerCancelled,
-  renderCachedWebIdsList,
   renderIssuerPicker,
-  renderPromptUi,
-} from './ui.js';
-import type { CachedWebId } from './webidCache.js';
+  type CachedWebId,
+} from '@jeswr/solid-reactive-fetch-shared/callback';
 
 beforeEach(() => {
   document.body.innerHTML = '';

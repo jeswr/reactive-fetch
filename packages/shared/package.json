@@ -1,16 +1,15 @@
 {
-  "name": "@jeswr/solid-reactive-fetch",
+  "name": "@jeswr/solid-reactive-fetch-shared",
   "version": "0.0.0",
-  "description": "Reactive authenticated fetch for Solid applications — auth is triggered automatically by 401s and webId reads, via a popup flow. Public API mirrors the Solid browser extension's window.solid for use behind a unified wrapper.",
+  "private": true,
+  "description": "Internal shared primitives for @jeswr/solid-reactive-fetch and @jeswr/solid-reactive-fetch-prompt — not published to npm.",
   "license": "MIT",
   "author": "Jesse Wright",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeswr/reactive-fetch.git",
-    "directory": "packages/core"
+    "directory": "packages/shared"
   },
-  "homepage": "https://github.com/jeswr/reactive-fetch/tree/main/packages/core",
-  "bugs": "https://github.com/jeswr/reactive-fetch/issues",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -26,21 +25,20 @@
       "types": "./dist/callback/index.d.ts",
       "import": "./dist/callback/index.js",
       "default": "./dist/callback/index.js"
+    },
+    "./sw": {
+      "types": "./dist/sw/index.d.ts",
+      "import": "./dist/sw/index.js",
+      "default": "./dist/sw/index.js"
     }
   },
   "files": [
-    "dist",
-    "README.md",
-    "CHANGELOG.md"
+    "dist"
   ],
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "clean": "rimraf dist"
@@ -51,19 +49,6 @@
   "peerDependencies": {
     "@uvdsl/solid-oidc-client-browser": "^0.2.0"
   },
-  "keywords": [
-    "solid",
-    "solid-oidc",
-    "oidc",
-    "dpop",
-    "authentication",
-    "fetch",
-    "reactive",
-    "webid",
-    "webid-profile",
-    "popup",
-    "browser-extension"
-  ],
   "devDependencies": {
     "@rdfjs/types": "^2.0.1",
     "@types/n3": "^1.26.1",
@@ -74,7 +59,6 @@
   },
   "dependencies": {
     "@jeswr/fetch-rdf": "github:jeswr/fetch-rdf#main",
-    "@jeswr/solid-reactive-fetch-shared": "workspace:*",
     "@rdfjs/wrapper": "^0.32.0",
     "@solid/object": "^0.5.0",
     "n3": "^2.0.3"

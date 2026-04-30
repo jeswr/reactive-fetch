@@ -102,6 +102,19 @@ describe('resolveOidcIssuers', () => {
     expect(issuers).toEqual(['http://localhost:3000/']);
   });
 
+  test('accepts http://127.0.0.1 (IPv4 loopback) when allowLocalhost is true', async () => {
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <http://127.0.0.1:3000/> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    const issuers = await resolveOidcIssuers('https://example.com/profile#me', {
+      allowLocalhost: true,
+    });
+    expect(issuers).toEqual(['http://127.0.0.1:3000/']);
+  });
+
   test('accepts http://[::1] (IPv6 loopback) when allowLocalhost is true', async () => {
     const body = `
       @prefix solid: <http://www.w3.org/ns/solid/terms#> .
@@ -160,6 +173,23 @@ describe('resolveOidcIssuers', () => {
       <https://example.com/profile#me>
         solid:oidcIssuer <javascript:alert(1)> ,
                          <file:///etc/hosts> .
+    `;
+    globalThis.fetch = mockFetchWith(body);
+
+    await expect(
+      resolveOidcIssuers('https://example.com/profile#me', { allowLocalhost: true }),
+    ).rejects.toBeInstanceOf(InvalidIssuerError);
+    await expect(
+      resolveOidcIssuers('https://example.com/profile#me', { allowLocalhost: false }),
+    ).rejects.toBeInstanceOf(InvalidIssuerError);
+  });
+
+  test('rejects data: scheme regardless of allowLocalhost', async () => {
+    // n3 won't parse a `data:` IRI with a comma as a single triple object,
+    // so use a comma-free data URL.
+    const body = `
+      @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <https://example.com/profile#me> solid:oidcIssuer <data:text/plain;base64,SGVsbG8=> .
     `;
     globalThis.fetch = mockFetchWith(body);
 

@@ -16,8 +16,11 @@
 // unified-wrapper API does not depend on them.
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { LOGIN_COMPLETE_MESSAGE_TYPE, __resetPopupStateForTests } from './popup.js';
-import { __resetSessionCacheForTests } from './session.js';
+import {
+  LOGIN_COMPLETE_MESSAGE_TYPE,
+  __resetPopupStateForTests,
+  __resetSessionCacheForTests,
+} from '@jeswr/solid-reactive-fetch-shared';
 import { createMockPopup, type MockPopup } from '../test/helpers/mockPopup.js';
 import {
   installMockWindowOpen,

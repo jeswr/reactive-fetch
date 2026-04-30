@@ -5,6 +5,8 @@ export type ReactiveFetchErrorCode =
   | 'webid_profile'
   | 'no_oidc_issuer'
   | 'invalid_issuer'
+  | 'invalid_webid'
+  | 'webid_prompt_cancelled'
   | 'login_failed'
   | 'session_restore_failed'
   | 'origin_mismatch';
@@ -91,6 +93,42 @@ export class InvalidIssuerError extends ReactiveFetchError {
     this.name = 'InvalidIssuerError';
     this.webId = webId;
     this.issuer = issuer;
+  }
+}
+
+/**
+ * Thrown when a WebID string entered by the user is syntactically invalid or
+ * uses a disallowed scheme. The prompt-flavoured factory validates the WebID
+ * synchronously before opening the popup so a hostile `javascript:`/`data:`/
+ * `file:` URL can never reach the popup query string. The popup-flavoured
+ * factory hits the same path through the in-popup form's URL validation.
+ */
+export class InvalidWebIdError extends ReactiveFetchError {
+  readonly code = 'invalid_webid';
+  readonly raw: string;
+
+  constructor(raw: string, message?: string, options?: ErrorOptions) {
+    super(message ?? `"${raw}" is not a valid WebID URL.`, options);
+    this.name = 'InvalidWebIdError';
+    this.raw = raw;
+  }
+}
+
+/**
+ * The user cancelled (or dismissed) the `window.prompt()` that asks for a
+ * WebID in the prompt-flavoured factory. Pending `webId` and `fetch` Promises
+ * reject with this so callers can distinguish a deliberate abort from a real
+ * failure.
+ */
+export class WebIdPromptCancelledError extends ReactiveFetchError {
+  readonly code = 'webid_prompt_cancelled';
+
+  constructor(
+    message = 'WebID prompt cancelled before a WebID was entered.',
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'WebIdPromptCancelledError';
   }
 }
 
