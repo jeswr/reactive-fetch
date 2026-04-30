@@ -34,6 +34,7 @@ import {
   createSessionBootstrap,
   ensureRestored,
   InvalidWebIdError,
+  LoginFailedError,
   openLoginPopup,
   rebuildSessionBootstrap,
   SessionRestoreFailedError,
@@ -169,6 +170,11 @@ export function createReactiveFetchPrompt(
   let currentClientId: string | undefined = initialClientId;
   let profileSnapshot: WebIDProfile | null = null;
   let profileFetchInFlight: Promise<void> | null = null;
+  // The WebID the in-flight profile fetch is targeting. Used as a
+  // late-publish guard so a profile fetch started for user A can't overwrite
+  // `profileSnapshot` after a `solid.login(B)` has already published B's
+  // profile.
+  let profileFetchWebId: string | null = null;
 
   const restorePromise: Promise<void> = ensureRestored(session).catch(
     (err: unknown) => {
@@ -186,16 +192,18 @@ export function createReactiveFetchPrompt(
   });
 
   let loginPromise: Promise<string> | null = null;
+  // Track the explicit target of the in-flight login so concurrent
+  // `solid.login(B)` while a `solid.login(A)` is pending doesn't silently
+  // join A's promise. `null` here means "no target specified" — i.e. the
+  // pending login was driven by a `rf.webId` read or a `rf.fetch` 401, where
+  // the caller didn't pin a specific WebID and any successful login resolves
+  // their intent.
+  let loginPromiseTarget: string | null = null;
 
   const ensureLoggedIn = (overrideWebId?: string): Promise<string> => {
-    if (loginPromise) return loginPromise;
-
-    // Validate `overrideWebId` BEFORE any active-session short-circuit so
-    // that `solid.login(webId)` is treated as an explicit login request:
-    // a malformed WebID is rejected even when another user is signed in,
-    // and a different WebID forces a fresh login (the popup overwrites
-    // the IDB session). Only an exact match with the active `session.webId`
-    // is treated as idempotent and short-circuits without opening a popup.
+    // Validate `overrideWebId` BEFORE any short-circuit so an explicit login
+    // request is rejected for a malformed WebID even when a session is
+    // active OR another login is already in flight.
     let validatedOverride: string | undefined;
     if (overrideWebId !== undefined) {
       try {
@@ -211,6 +219,27 @@ export function createReactiveFetchPrompt(
       }
     }
 
+    if (loginPromise) {
+      // Concurrent calls share the in-flight login only if their targets
+      // match. A reactive read with no target joins any pending login
+      // (consumer's intent is "any active session is fine"). A
+      // `solid.login(X)` joins only a pending login that already targets X;
+      // otherwise it would resolve with the wrong user. Reject the
+      // mismatching call rather than silently queueing — queueing would
+      // require driving a second popup mid-flight, which can't be done
+      // outside the user-gesture chain that triggered it.
+      if (validatedOverride === undefined) return loginPromise;
+      if (loginPromiseTarget === null || loginPromiseTarget === validatedOverride) {
+        return loginPromise;
+      }
+      return Promise.reject(
+        new LoginFailedError(
+          `Another login flow is in progress (targeting ${loginPromiseTarget ?? 'an unspecified WebID'}); ` +
+            `wait for it to settle before logging in as ${validatedOverride}.`,
+        ),
+      );
+    }
+
     if (session.isActive && session.webId) {
       const idempotent =
         validatedOverride === undefined || validatedOverride === session.webId;
@@ -221,9 +250,19 @@ export function createReactiveFetchPrompt(
         return Promise.resolve(session.webId);
       }
       // Different WebID supplied while a session is active — caller wants
-      // to switch users. Fall through to the popup flow; the IDP redirect
-      // overwrites the IDB-stored session, and we rebuild our `Session`
-      // reference below so the swap is observed locally.
+      // to switch users. Drop the previous user's profile state so a
+      // late-arriving `refreshProfile(oldWebId)` can't publish back into
+      // `solid.profile` after the new login completes, and so a new
+      // `refreshProfile(newWebId)` isn't blocked by the in-flight dedup.
+      // The late-publish guard inside `refreshProfile` keys on
+      // `profileFetchWebId`, so flipping it here ensures the orphaned
+      // fetch (if it later resolves) sees a key mismatch and bails.
+      profileSnapshot = null;
+      profileFetchInFlight = null;
+      profileFetchWebId = null;
+      // Fall through to the popup flow; the IDP redirect overwrites the
+      // IDB-stored session, and we rebuild our `Session` reference below
+      // so the swap is observed locally.
     }
 
     // Synchronously: collect a WebID. If the caller already gave one
@@ -274,25 +313,50 @@ export function createReactiveFetchPrompt(
         return session.webId;
       } finally {
         loginPromise = null;
+        loginPromiseTarget = null;
       }
     })();
 
     loginPromise = pending;
+    loginPromiseTarget = validatedOverride ?? null;
     return pending;
   };
 
   const refreshProfile = (webId: string): Promise<void> => {
-    if (profileFetchInFlight) return profileFetchInFlight;
-    const pending = (async () => {
+    // Don't dedup across user-switches: if a fetch is in flight for the
+    // previous user, ignore the dedup and start a new fetch that races. The
+    // late-publish guard below keeps the snapshot consistent regardless of
+    // which fetch lands first. (When the same webId is requested twice in a
+    // row we still dedup via the flight pointer.)
+    if (profileFetchInFlight && profileFetchWebId === webId) {
+      return profileFetchInFlight;
+    }
+    profileFetchWebId = webId;
+    // Definite-assignment assertion: `pending` is captured by the IIFE's
+    // `finally` block, but the IIFE only runs after the outer assignment
+    // completes. TS's flow analysis can't see that ordering, hence `!`.
+    let pending!: Promise<void>;
+    pending = (async () => {
       try {
         const { agent } = await fetchWebIDProfile(webId, {
           allowLocalhost: allowLocalhost ?? false,
         });
-        profileSnapshot = agent;
+        // Late-publish guard: only adopt this fetch's result if it's still
+        // for the user we currently care about. If a `solid.login(B)`
+        // happened mid-flight, `profileFetchWebId` (and `session.webId`)
+        // will have moved on; A's profile must not overwrite B's.
+        if (profileFetchWebId === webId) {
+          profileSnapshot = agent;
+        }
       } catch {
         /* snapshot stays at its previous value */
       } finally {
-        profileFetchInFlight = null;
+        // Only clear `profileFetchInFlight` if we're still the in-flight
+        // entry — a user-switch may have started a new fetch that's now
+        // owning the slot.
+        if (profileFetchInFlight === pending) {
+          profileFetchInFlight = null;
+        }
       }
     })();
     profileFetchInFlight = pending;
