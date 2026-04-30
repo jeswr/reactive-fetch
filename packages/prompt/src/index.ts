@@ -318,7 +318,14 @@ export function createReactiveFetchPrompt(
     })();
 
     loginPromise = pending;
-    loginPromiseTarget = validatedOverride ?? null;
+    // Always pin the target — even prompt-driven logins where no
+    // `overrideWebId` was supplied. The popup URL already has `?webId=`
+    // hard-coded to `validatedWebId`, so a concurrent `solid.login(other)`
+    // joining this promise would resolve with the prompted WebID, not the
+    // one the explicit caller asked for. By pinning, the join check above
+    // rejects mismatched explicit targets while still letting untargeted
+    // reactive reads (`rf.webId` / `rf.fetch`) ride along.
+    loginPromiseTarget = validatedWebId;
     return pending;
   };
 
