@@ -21,11 +21,12 @@ import {
   __resetPopupStateForTests,
   __resetSessionCacheForTests,
 } from '@jeswr/solid-reactive-fetch-shared';
-import { createMockPopup, type MockPopup } from '../test/helpers/mockPopup.js';
 import {
+  createMockPopup,
   installMockWindowOpen,
+  type MockPopup,
   type MockWindowOpenStub,
-} from '../test/helpers/mockWindowOpen.js';
+} from '@jeswr/solid-reactive-fetch-shared/test-helpers';
 
 const PROFILE_TURTLE = `
   @prefix solid: <http://www.w3.org/ns/solid/terms#> .

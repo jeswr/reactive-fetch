@@ -4,8 +4,12 @@ import {
   __resetPopupStateForTests,
   __resetSessionCacheForTests,
 } from '@jeswr/solid-reactive-fetch-shared';
-import { createMockPopup, type MockPopup } from '../test/helpers/mockPopup.js';
-import { installMockWindowOpen, type MockWindowOpenStub } from '../test/helpers/mockWindowOpen.js';
+import {
+  createMockPopup,
+  installMockWindowOpen,
+  type MockPopup,
+  type MockWindowOpenStub,
+} from '@jeswr/solid-reactive-fetch-shared/test-helpers';
 
 /**
  * FakeSession: same shape as the session.test.ts stand-in, but this file

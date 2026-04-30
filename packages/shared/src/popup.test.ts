@@ -36,7 +36,13 @@ describe('openLoginPopup: success', () => {
     expect(popup.closed).toBe(true);
     expect(popup.closeCallCount).toBe(1);
     expect(stub.calls).toEqual([
-      { url: '/callback', target: 'reactive-fetch-login', features: 'popup=yes,width=520,height=640' },
+      {
+        url: '/callback',
+        target: 'reactive-fetch-login',
+        features: 'popup=yes,width=520,height=640',
+        // Default sentinel from the (un-installed) tick provider.
+        tick: -1,
+      },
     ]);
   });
 

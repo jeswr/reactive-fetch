@@ -1,6 +1,8 @@
 import { afterEach, expect, test } from 'vitest';
-import { createMockPopup } from '../test/helpers/mockPopup.js';
-import { installMockWindowOpen } from '../test/helpers/mockWindowOpen.js';
+import {
+  createMockPopup,
+  installMockWindowOpen,
+} from '@jeswr/solid-reactive-fetch-shared/test-helpers';
 
 let cleanup: (() => void) | undefined;
 
@@ -74,7 +76,14 @@ test('mockWindowOpen: returns enqueued popup and tracks call args', () => {
   const handle = window.open('https://idp.test/auth', 'solid-login', 'popup=1,width=480');
   expect(handle).toBe(popup.window);
   expect(stub.calls).toEqual([
-    { url: 'https://idp.test/auth', target: 'solid-login', features: 'popup=1,width=480' },
+    {
+      url: 'https://idp.test/auth',
+      target: 'solid-login',
+      features: 'popup=1,width=480',
+      // Default sentinel from the (un-installed) tick provider — see
+      // mockWindowOpen.setTickProvider for ordering-aware tests.
+      tick: -1,
+    },
   ]);
 });
 

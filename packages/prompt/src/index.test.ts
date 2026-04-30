@@ -19,11 +19,12 @@ import {
   __resetPopupStateForTests,
   __resetSessionCacheForTests,
 } from '@jeswr/solid-reactive-fetch-shared';
-import { createMockPopup, type MockPopup } from '../test/helpers/mockPopup.js';
 import {
+  createMockPopup,
   installMockWindowOpen,
+  type MockPopup,
   type MockWindowOpenStub,
-} from '../test/helpers/mockWindowOpen.js';
+} from '@jeswr/solid-reactive-fetch-shared/test-helpers';
 
 // FakeSession stand-in. Same pattern as the core package's tests: hoisted so
 // the vi.mock factory below can reference the class declaration.
