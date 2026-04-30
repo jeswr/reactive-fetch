@@ -36,6 +36,11 @@ export {
   type OpenLoginPopupOptions,
 } from './popup.js';
 
+export {
+  prepareRetryable,
+  type Retryable,
+} from './retry.js';
+
 // SW wire-protocol re-exports. `LOGIN_COMPLETE_MESSAGE_TYPE` collides with
 // the popup-flow constant above (different string values for different
 // protocols), so the sw-flavour is re-exported under an `SW_`-prefixed

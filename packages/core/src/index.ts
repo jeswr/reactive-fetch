@@ -53,6 +53,7 @@ import {
   createSessionBootstrap,
   ensureRestored,
   openLoginPopup,
+  prepareRetryable,
   SessionRestoreFailedError,
   type WebIDProfile,
 } from '@jeswr/solid-reactive-fetch-shared';
@@ -403,42 +404,4 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
   return rf;
 }
 
-interface Retryable {
-  request: Request;
-  retry: { input: RequestInfo | URL; init?: RequestInit };
-}
-
-function prepareRetryable(input: RequestInfo | URL, init?: RequestInit): Retryable {
-  if (input instanceof Request) {
-    const first = input.clone();
-    const second = input.clone();
-    return {
-      request: first,
-      retry: { input: second, init },
-    };
-  }
-
-  if (init?.body && isConsumableBody(init.body)) {
-    const request = new Request(input, init);
-    return {
-      request: request.clone(),
-      retry: { input: request.clone() },
-    };
-  }
-
-  return {
-    request: new Request(input, init),
-    retry: { input, init },
-  };
-}
-
-function isConsumableBody(body: BodyInit): boolean {
-  return (
-    body instanceof ReadableStream ||
-    body instanceof Blob ||
-    body instanceof FormData ||
-    body instanceof URLSearchParams ||
-    body instanceof ArrayBuffer ||
-    ArrayBuffer.isView(body)
-  );
-}
+// `prepareRetryable` lives in `@jeswr/solid-reactive-fetch-shared`.

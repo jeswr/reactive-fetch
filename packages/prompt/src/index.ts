@@ -36,6 +36,7 @@ import {
   InvalidWebIdError,
   LoginFailedError,
   openLoginPopup,
+  prepareRetryable,
   rebuildSessionBootstrap,
   SessionRestoreFailedError,
   WebIdPromptCancelledError,
@@ -451,47 +452,4 @@ function appendWebIdParam(callbackUrl: string, webId: string): string {
   return url.toString();
 }
 
-interface Retryable {
-  request: Request;
-  retry: { input: RequestInfo | URL; init?: RequestInit };
-}
-
-function prepareRetryable(input: RequestInfo | URL, init?: RequestInit): Retryable {
-  if (input instanceof Request) {
-    // `globalThis.fetch(request, init)` overlays `init` on top of `request`'s
-    // properties (method, headers, body, …) per the Fetch spec. Cloning the
-    // bare request and dropping `init` would send the unauthenticated
-    // request with the wrong overrides — a non-401 200 OK could come back
-    // for the wrong method/headers/body. Materialize the merged Request
-    // once so both the initial fetch and the retry inherit the overrides.
-    const merged = init ? new Request(input, init) : input;
-    return {
-      request: merged.clone(),
-      retry: { input: merged.clone() },
-    };
-  }
-
-  if (init?.body && isConsumableBody(init.body)) {
-    const request = new Request(input, init);
-    return {
-      request: request.clone(),
-      retry: { input: request.clone() },
-    };
-  }
-
-  return {
-    request: new Request(input, init),
-    retry: { input, init },
-  };
-}
-
-function isConsumableBody(body: BodyInit): boolean {
-  return (
-    body instanceof ReadableStream ||
-    body instanceof Blob ||
-    body instanceof FormData ||
-    body instanceof URLSearchParams ||
-    body instanceof ArrayBuffer ||
-    ArrayBuffer.isView(body)
-  );
-}
+// `prepareRetryable` lives in `@jeswr/solid-reactive-fetch-shared`.
