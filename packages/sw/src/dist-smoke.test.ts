@@ -1,13 +1,14 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, test } from 'vitest';
+import { describe, test } from 'vitest';
+import { expectNoReferences } from '@jeswr/solid-reactive-fetch-shared/dist-smoke';
 
-// Built-artifact regression guard. The page-side `dist/index.js` is
-// published to npm; if it ever started referencing the unpublished
-// `@jeswr/solid-reactive-fetch-shared` package, consumers would fail to
-// install. This test only asserts on the static shape — no instanceof
-// assertions, because the page-side bundle has no inlined classes whose
-// identity could split (it imports only typed message constants).
+// The page-side `dist/index.js` is published to npm; if it ever started
+// referencing the unpublished `@jeswr/solid-reactive-fetch-shared`
+// package, consumers would fail to install. The worker bundle is fully
+// inlined (uvdsl + shared) so consumers can drop a single file in their
+// public dir. No class-identity assertions are needed here — the page-side
+// bundle has no inlined classes, just typed message constants.
 
 const distDir = resolve(process.cwd(), 'dist');
 const pageEntry = resolve(distDir, 'index.js');
@@ -19,26 +20,19 @@ const workerBuilt = existsSync(workerBundle);
 
 describe.skipIf(!pageBuilt)('built dist: page bundle is self-contained', () => {
   test('dist/index.js does not reference @jeswr/solid-reactive-fetch-shared', () => {
-    const src = readFileSync(pageEntry, 'utf8');
-    expect(src.includes('@jeswr/solid-reactive-fetch-shared')).toBe(false);
+    expectNoReferences(pageEntry, ['@jeswr/solid-reactive-fetch-shared']);
   });
 
   test('dist/index.d.ts does not reference @jeswr/solid-reactive-fetch-shared', () => {
-    const src = readFileSync(pageDts, 'utf8');
-    expect(src.includes('@jeswr/solid-reactive-fetch-shared')).toBe(false);
+    expectNoReferences(pageDts, ['@jeswr/solid-reactive-fetch-shared']);
   });
 });
 
 describe.skipIf(!workerBuilt)('built dist: worker bundle is self-contained', () => {
-  test('dist/worker.js does not reference @jeswr/solid-reactive-fetch-shared', () => {
-    const src = readFileSync(workerBundle, 'utf8');
-    expect(src.includes('@jeswr/solid-reactive-fetch-shared')).toBe(false);
-  });
-
-  test('dist/worker.js does not reference @uvdsl/solid-oidc-client-browser', () => {
-    // Worker is fully bundled — uvdsl is also inlined so consumers can drop
-    // a single file in their public dir.
-    const src = readFileSync(workerBundle, 'utf8');
-    expect(src.includes("from '@uvdsl/solid-oidc-client-browser")).toBe(false);
+  test('dist/worker.js inlines all unpublished or peer-only deps', () => {
+    expectNoReferences(workerBundle, [
+      '@jeswr/solid-reactive-fetch-shared',
+      "from '@uvdsl/solid-oidc-client-browser",
+    ]);
   });
 });

@@ -40,6 +40,11 @@
       "types": "./test/setup.ts",
       "import": "./test/setup.ts",
       "default": "./test/setup.ts"
+    },
+    "./dist-smoke": {
+      "types": "./test/distSmoke.ts",
+      "import": "./test/distSmoke.ts",
+      "default": "./test/distSmoke.ts"
     }
   },
   "files": [
