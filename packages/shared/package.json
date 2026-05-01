@@ -35,6 +35,11 @@
       "types": "./test/helpers/index.ts",
       "import": "./test/helpers/index.ts",
       "default": "./test/helpers/index.ts"
+    },
+    "./test-setup": {
+      "types": "./test/setup.ts",
+      "import": "./test/setup.ts",
+      "default": "./test/setup.ts"
     }
   },
   "files": [
