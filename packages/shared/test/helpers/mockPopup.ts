@@ -17,10 +17,9 @@
  *   calling `.close()`, so tests can exercise the "user closed the popup"
  *   path (polling `.closed`).
  *
- * Mirrors `packages/core/test/helpers/mockPopup.ts` and
- * `packages/prompt/test/helpers/mockPopup.ts` — copied rather than imported
- * because each package owns its own test/ directory and we don't want to
- * introduce a cross-package test-helpers dependency.
+ * Lives in `shared/test/helpers/` so every consuming package's tests can
+ * import it via the `@jeswr/solid-reactive-fetch-shared/test-helpers`
+ * subpath without reaching into a sibling package's relative paths.
  */
 
 export interface MockPopupOptions {

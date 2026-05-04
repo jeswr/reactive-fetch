@@ -2,7 +2,10 @@
   "extends": "./tsconfig.base.json",
   "files": [],
   "references": [
+    { "path": "./packages/shared" },
     { "path": "./packages/core" },
-    { "path": "./packages/react" }
+    { "path": "./packages/driver-prompt" },
+    { "path": "./packages/react" },
+    { "path": "./packages/sw" }
   ]
 }

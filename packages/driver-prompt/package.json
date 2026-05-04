@@ -1,15 +1,15 @@
 {
-  "name": "@jeswr/solid-reactive-fetch-sw",
+  "name": "@jeswr/solid-reactive-fetch-driver-prompt",
   "version": "0.0.0",
-  "description": "Service-worker variant of @jeswr/solid-reactive-fetch — intercepts the unmodified global fetch and transparently authenticates Solid requests, composing with any login UI (popup, prompt, custom).",
+  "description": "WebID driver for @jeswr/solid-reactive-fetch that uses the OS-native window.prompt() to collect a WebID, instead of the popup's built-in form. Useful in kiosk apps, deeply restricted CSPs, or accessibility-tooling contexts that prefer native dialogs.",
   "license": "MIT",
   "author": "Jesse Wright",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeswr/reactive-fetch.git",
-    "directory": "packages/sw"
+    "directory": "packages/driver-prompt"
   },
-  "homepage": "https://github.com/jeswr/reactive-fetch/tree/main/packages/sw",
+  "homepage": "https://github.com/jeswr/reactive-fetch/tree/main/packages/driver-prompt",
   "bugs": "https://github.com/jeswr/reactive-fetch/issues",
   "type": "module",
   "sideEffects": false,
@@ -21,11 +21,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./worker": {
-      "types": "./dist/worker.d.ts",
-      "import": "./dist/worker.js",
-      "default": "./dist/worker.js"
     }
   },
   "files": [
@@ -38,34 +33,26 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup && node scripts/write-worker-dts.mjs",
+    "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "clean": "rimraf dist"
   },
   "engines": {
     "node": ">=20"
   },
-  "peerDependencies": {
-    "@uvdsl/solid-oidc-client-browser": "^0.2.0"
-  },
   "keywords": [
     "solid",
     "solid-oidc",
-    "oidc",
-    "dpop",
-    "authentication",
-    "fetch",
-    "service-worker",
-    "reactive",
-    "webid"
+    "reactive-fetch",
+    "webid",
+    "driver",
+    "prompt"
   ],
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "@uvdsl/solid-oidc-client-browser": "^0.2.2",
-    "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.0.2"
   },
   "dependencies": {

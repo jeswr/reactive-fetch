@@ -1,9 +1,12 @@
-// Shared OIDC-redirect-handling primitives used by every flavour of the
-// callback page. Both `@jeswr/solid-reactive-fetch` (in-popup WebID form +
-// cached list + issuer picker) and `@jeswr/solid-reactive-fetch-prompt`
-// (parent-side `window.prompt()` + `?webId=` short-circuit) compose these
-// pieces; the only thing that differs between callback flavours is the UI
-// the user sees before the IDP redirect.
+// Shared OIDC-redirect-handling primitives composed by
+// `@jeswr/solid-reactive-fetch`'s `mountCallback`. The callback page
+// has two entry shapes:
+//
+//   - `?webId=…` already provided by the parent (because a `WebIdDriver`
+//     ran before `window.open`): skip the in-popup form, go straight to
+//     OIDC discovery.
+//   - no `?webId=`: render the built-in WebID-input form (and the
+//     cached-WebIDs list, if any).
 
 import { Session } from '@uvdsl/solid-oidc-client-browser';
 import {

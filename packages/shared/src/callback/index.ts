@@ -1,6 +1,5 @@
-// Re-exports the shared callback primitives. Per-flavour `mountCallback`
-// implementations (one in `@jeswr/solid-reactive-fetch`, one in
-// `@jeswr/solid-reactive-fetch-prompt`) compose these.
+// Re-exports the shared callback primitives. Composed by
+// `@jeswr/solid-reactive-fetch`'s `mountCallback`.
 
 export {
   WebIDProfileAgent,
