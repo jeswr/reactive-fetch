@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@jeswr/solid-reactive-fetch-driver-prompt)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch-driver-prompt)
 
-A [`WebIdDriver`](../shared/) for [`@jeswr/solid-reactive-fetch`](../core/) that uses the OS-native `window.prompt()` to collect a WebID, instead of the popup's built-in form.
+A `WebIdDriver` for [`@jeswr/solid-reactive-fetch`](../core/) that uses the OS-native `window.prompt()` to collect a WebID, instead of the popup's built-in form.
 
 ```ts
 import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
@@ -45,4 +45,4 @@ type WebIdDriver = (ctx: { allowLocalhost: boolean }) =>
   string | null | Promise<string | null>;
 ```
 
-Anything that can synchronously (or close enough) acquire a WebID can be a driver — a styled modal, a saved-WebID dropdown, an Electron IPC dialog, …. See the [shared package's `WebIdDriver` documentation](../shared/src/driver.ts) for the full contract.
+Anything that can synchronously (or close enough) acquire a WebID can be a driver — a styled modal, a saved-WebID dropdown, an Electron IPC dialog, …. See [`@jeswr/solid-reactive-fetch-shared`](../shared/) for the full contract.

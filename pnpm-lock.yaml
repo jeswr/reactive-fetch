@@ -121,6 +121,9 @@ importers:
       '@jeswr/fetch-rdf':
         specifier: github:jeswr/fetch-rdf#main
         version: git+https://github.com/jeswr/fetch-rdf.git#c0b1a919d0449024df0df7b17f5c86ffc6e1fba5
+      '@jeswr/solid-reactive-fetch-shared':
+        specifier: workspace:*
+        version: link:../shared
       '@rdfjs/wrapper':
         specifier: ^0.32.0
         version: 0.32.0
@@ -131,9 +134,6 @@ importers:
         specifier: ^2.0.3
         version: 2.0.3
     devDependencies:
-      '@jeswr/solid-reactive-fetch-shared':
-        specifier: workspace:*
-        version: link:../shared
       '@rdfjs/types':
         specifier: ^2.0.1
         version: 2.0.1
@@ -153,39 +153,15 @@ importers:
         specifier: ^29.0.2
         version: 29.0.2
 
-  packages/prompt:
+  packages/driver-prompt:
     dependencies:
-      '@jeswr/fetch-rdf':
-        specifier: github:jeswr/fetch-rdf#main
-        version: git+https://github.com/jeswr/fetch-rdf.git#0f4df336f4a91127658a35a604d511cb32168d76
-      '@rdfjs/wrapper':
-        specifier: ^0.32.0
-        version: 0.32.0
-      '@solid/object':
-        specifier: ^0.5.0
-        version: 0.5.0
-      n3:
-        specifier: ^2.0.3
-        version: 2.0.3
-    devDependencies:
       '@jeswr/solid-reactive-fetch-shared':
         specifier: workspace:*
         version: link:../shared
-      '@rdfjs/types':
-        specifier: ^2.0.1
-        version: 2.0.1
-      '@types/n3':
-        specifier: ^1.26.1
-        version: 1.26.1
+    devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
-      '@uvdsl/solid-oidc-client-browser':
-        specifier: ^0.2.2
-        version: 0.2.2
-      fake-indexeddb:
-        specifier: ^6.2.5
-        version: 6.2.5
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
@@ -256,10 +232,11 @@ importers:
         version: 29.0.2
 
   packages/sw:
-    devDependencies:
+    dependencies:
       '@jeswr/solid-reactive-fetch-shared':
         specifier: workspace:*
         version: link:../shared
+    devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0

@@ -189,5 +189,5 @@ jobs:
 
       - name: Run security-invariant tests
         # Covers the postMessage/eval/innerHTML/etc. source-grep assertions in
-        # packages/core/src/security.test.ts. Does not require a build.
-        run: pnpm --filter @jeswr/solid-reactive-fetch test -- src/security.test.ts
+        # packages/core/test/security.test.ts. Does not require a build.
+        run: pnpm --filter @jeswr/solid-reactive-fetch test -- test/security.test.ts
