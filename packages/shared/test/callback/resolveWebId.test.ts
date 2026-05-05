@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { InvalidIssuerError, NoOidcIssuerError, WebIdProfileError } from '../errors.js';
-import { resolveOidcIssuers, resolveWebIdProfile } from './resolveWebId.js';
+import { InvalidIssuerError, NoOidcIssuerError, WebIdProfileError } from '../../src/errors.js';
+import { resolveOidcIssuers, resolveWebIdProfile } from '../../src/callback/resolveWebId.js';
 
 const TURTLE_HEADERS = { 'content-type': 'text/turtle' };
 

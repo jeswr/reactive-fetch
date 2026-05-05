@@ -119,8 +119,11 @@ importers:
   packages/core:
     dependencies:
       '@jeswr/fetch-rdf':
-        specifier: github:jeswr/fetch-rdf#main
-        version: git+https://github.com/jeswr/fetch-rdf.git#c0b1a919d0449024df0df7b17f5c86ffc6e1fba5
+        specifier: ^0.1.0
+        version: 0.1.0
+      '@jeswr/solid-reactive-fetch-shared':
+        specifier: workspace:*
+        version: link:../shared
       '@rdfjs/wrapper':
         specifier: ^0.32.0
         version: 0.32.0
@@ -131,46 +134,6 @@ importers:
         specifier: ^2.0.3
         version: 2.0.3
     devDependencies:
-      '@jeswr/solid-reactive-fetch-shared':
-        specifier: workspace:*
-        version: link:../shared
-      '@rdfjs/types':
-        specifier: ^2.0.1
-        version: 2.0.1
-      '@types/n3':
-        specifier: ^1.26.1
-        version: 1.26.1
-      '@types/node':
-        specifier: ^25.6.0
-        version: 25.6.0
-      '@uvdsl/solid-oidc-client-browser':
-        specifier: ^0.2.2
-        version: 0.2.2
-      fake-indexeddb:
-        specifier: ^6.2.5
-        version: 6.2.5
-      jsdom:
-        specifier: ^29.0.2
-        version: 29.0.2
-
-  packages/prompt:
-    dependencies:
-      '@jeswr/fetch-rdf':
-        specifier: github:jeswr/fetch-rdf#main
-        version: git+https://github.com/jeswr/fetch-rdf.git#0f4df336f4a91127658a35a604d511cb32168d76
-      '@rdfjs/wrapper':
-        specifier: ^0.32.0
-        version: 0.32.0
-      '@solid/object':
-        specifier: ^0.5.0
-        version: 0.5.0
-      n3:
-        specifier: ^2.0.3
-        version: 2.0.3
-    devDependencies:
-      '@jeswr/solid-reactive-fetch-shared':
-        specifier: workspace:*
-        version: link:../shared
       '@rdfjs/types':
         specifier: ^2.0.1
         version: 2.0.1
@@ -224,8 +187,8 @@ importers:
   packages/shared:
     dependencies:
       '@jeswr/fetch-rdf':
-        specifier: github:jeswr/fetch-rdf#main
-        version: git+https://github.com/jeswr/fetch-rdf.git#0f4df336f4a91127658a35a604d511cb32168d76
+        specifier: ^0.1.0
+        version: 0.1.0
       '@rdfjs/wrapper':
         specifier: ^0.32.0
         version: 0.32.0
@@ -256,10 +219,11 @@ importers:
         version: 29.0.2
 
   packages/sw:
-    devDependencies:
+    dependencies:
       '@jeswr/solid-reactive-fetch-shared':
         specifier: workspace:*
         version: link:../shared
+    devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -1360,14 +1324,8 @@ packages:
     resolution: {integrity: sha512-RQgQ4uQ+pLbqXfOmieB91ejmLwvSgv9nLx6sT6sD83s7umBypgg+OIBOBbEUiJXrfpnp9j0mRhYYdzp9uqq3lA==}
     engines: {node: '>=12'}
 
-  '@jeswr/fetch-rdf@git+https://github.com/jeswr/fetch-rdf.git#0f4df336f4a91127658a35a604d511cb32168d76':
-    resolution: {commit: 0f4df336f4a91127658a35a604d511cb32168d76, repo: https://github.com/jeswr/fetch-rdf.git, type: git}
-    version: 0.1.0
-    engines: {node: '>=20'}
-
-  '@jeswr/fetch-rdf@git+https://github.com/jeswr/fetch-rdf.git#c0b1a919d0449024df0df7b17f5c86ffc6e1fba5':
-    resolution: {commit: c0b1a919d0449024df0df7b17f5c86ffc6e1fba5, repo: https://github.com/jeswr/fetch-rdf.git, type: git}
-    version: 0.1.0
+  '@jeswr/fetch-rdf@0.1.0':
+    resolution: {integrity: sha512-bdugw+QynGEUTUYERuVDY0sMfEiCehx54ahvXVUY/KThq1r6w+uHH0kbhg8s36gvdW3xNDaqAbbnGbRDR9qgkw==}
     engines: {node: '>=20'}
 
   '@jeswr/prefixcc@1.2.1':
@@ -7345,14 +7303,7 @@ snapshots:
 
   '@isaacs/ttlcache@1.4.1': {}
 
-  '@jeswr/fetch-rdf@git+https://github.com/jeswr/fetch-rdf.git#0f4df336f4a91127658a35a604d511cb32168d76':
-    dependencies:
-      '@rdfjs/dataset': 2.0.2
-      content-type: 1.0.5
-      jsonld-streaming-parser: 5.0.1
-      n3: 2.0.3
-
-  '@jeswr/fetch-rdf@git+https://github.com/jeswr/fetch-rdf.git#c0b1a919d0449024df0df7b17f5c86ffc6e1fba5':
+  '@jeswr/fetch-rdf@0.1.0':
     dependencies:
       '@rdfjs/dataset': 2.0.2
       content-type: 1.0.5

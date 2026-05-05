@@ -37,14 +37,18 @@ const PROFILE_TURTLE = `
 `;
 
 // Reuse the FakeSession pattern from index.test.ts so the popup → restore
-// → webId path resolves without hitting a real IDP.
+// → webId path resolves without hitting a real IDP. Tests configure
+// `restoreImpl` on the first instance (captured into arrow closures);
+// `rebuildSessionBootstrap` constructs additional instances which inherit
+// the impl and proxy `isActive` / `webId` back through `firstInstance`.
 const { FakeSession } = vi.hoisted(() => {
   class FakeSession {
+    static firstInstance: FakeSession | undefined;
     static lastInstance: FakeSession | undefined;
     isActive = false;
     webId: string | undefined;
     restoreImpl: () => Promise<void> = async () => undefined;
-    logoutImpl: () => Promise<void> = async () => {
+    logoutImpl: () => Promise<void> = async function (this: FakeSession) {
       this.isActive = false;
       this.webId = undefined;
     };
@@ -52,13 +56,30 @@ const { FakeSession } = vi.hoisted(() => {
       new Response('ok');
 
     constructor(_details: { client_id: string }) {
+      const prev = FakeSession.lastInstance;
+      if (prev) {
+        this.restoreImpl = prev.restoreImpl;
+        this.authFetchImpl = prev.authFetchImpl;
+        this.logoutImpl = prev.logoutImpl;
+      }
+      if (!FakeSession.firstInstance) FakeSession.firstInstance = this;
       FakeSession.lastInstance = this;
     }
     async restore(): Promise<void> {
       await this.restoreImpl();
+      const first = FakeSession.firstInstance;
+      if (first && first !== this) {
+        this.isActive = first.isActive;
+        this.webId = first.webId;
+      }
     }
     async logout(): Promise<void> {
       await this.logoutImpl();
+      const first = FakeSession.firstInstance;
+      if (first && first !== this) {
+        first.isActive = false;
+        first.webId = undefined;
+      }
     }
     authFetch(input: unknown, init?: RequestInit): Promise<Response> {
       return this.authFetchImpl(input, init);
@@ -71,7 +92,7 @@ vi.mock('@uvdsl/solid-oidc-client-browser', () => ({
   Session: FakeSession,
 }));
 
-let createReactiveFetch: typeof import('./index.js').createReactiveFetch;
+let createReactiveFetch: typeof import('../src/index.js').createReactiveFetch;
 let stub: MockWindowOpenStub;
 
 async function waitForPopupOpened(target: number, maxTicks = 50): Promise<void> {
@@ -94,8 +115,9 @@ beforeEach(async () => {
   __resetSessionCacheForTests();
   __resetPopupStateForTests();
   FakeSession.lastInstance = undefined;
+  FakeSession.firstInstance = undefined;
   stub = installMockWindowOpen();
-  ({ createReactiveFetch } = await import('./index.js'));
+  ({ createReactiveFetch } = await import('../src/index.js'));
 
   // Default: any GET against the WebID document returns the canonical
   // turtle profile above. App-resource fetches (anything else) return a

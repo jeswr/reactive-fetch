@@ -3,10 +3,10 @@ import {
   LOGIN_COMPLETE_MESSAGE_TYPE,
   __resetPopupStateForTests,
   openLoginPopup,
-} from './popup.js';
-import { PopupBlockedError, PopupClosedError, PopupTimeoutError } from './errors.js';
-import { createMockPopup } from '../test/helpers/mockPopup.js';
-import { installMockWindowOpen, type MockWindowOpenStub } from '../test/helpers/mockWindowOpen.js';
+} from '../src/popup.js';
+import { PopupBlockedError, PopupClosedError, PopupTimeoutError } from '../src/errors.js';
+import { createMockPopup } from './helpers/mockPopup.js';
+import { installMockWindowOpen, type MockWindowOpenStub } from './helpers/mockWindowOpen.js';
 
 let stub: MockWindowOpenStub;
 

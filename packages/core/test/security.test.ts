@@ -1,8 +1,8 @@
 // Security-invariant tests. These encode properties from the security audit
 // (#8) as checked-in tests so regressions surface at PR time rather than during
 // the next audit. See also:
-//   - packages/shared/src/popup.test.ts — `origin`/`event.source` validation
-//   - packages/shared/src/callback/resolveWebId.test.ts — `isAllowedIssuer`
+//   - packages/shared/test/popup.test.ts — `origin`/`event.source` validation
+//   - packages/shared/test/callback/resolveWebId.test.ts — `isAllowedIssuer`
 //   - .github/workflows/ci.yml — `pnpm audit` + CodeQL jobs
 //
 // The popup + resolveWebId modules moved to `@jeswr/solid-reactive-fetch-shared`
@@ -13,7 +13,10 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { LOGIN_COMPLETE_MESSAGE_TYPE } from '@jeswr/solid-reactive-fetch-shared';
+// Import the constant from shared's source (not the bare-root package
+// specifier) so the Security CI job — which intentionally has no
+// `needs: build` — can run without first building shared/dist.
+import { LOGIN_COMPLETE_MESSAGE_TYPE } from '../../shared/src/popup.js';
 
 // Path to `packages/shared/src` from `packages/core/`. The shared package
 // is the new home for the popup orchestration + WebID-resolution code, so

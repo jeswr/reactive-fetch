@@ -1,6 +1,6 @@
 {
   "branches": ["main"],
-  "tagFormat": "@jeswr/solid-reactive-fetch-prompt@${version}",
+  "tagFormat": "@jeswr/solid-reactive-fetch-shared@${version}",
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
@@ -13,7 +13,7 @@
       "@semantic-release/git",
       {
         "assets": ["CHANGELOG.md", "package.json"],
-        "message": "chore(release): @jeswr/solid-reactive-fetch-prompt@${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        "message": "chore(release): @jeswr/solid-reactive-fetch-shared@${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
     "@semantic-release/github"

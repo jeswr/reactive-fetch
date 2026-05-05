@@ -1,14 +1,19 @@
 {
   "name": "@jeswr/solid-reactive-fetch-shared",
   "version": "0.0.0",
-  "private": true,
-  "description": "Internal shared primitives for @jeswr/solid-reactive-fetch and @jeswr/solid-reactive-fetch-prompt — not published to npm.",
+  "description": "Shared primitives for @jeswr/solid-reactive-fetch and its WebID drivers — session bootstrap, popup orchestration, error hierarchy, callback-page handlers, and the WebIdDriver contract.",
   "license": "MIT",
   "author": "Jesse Wright",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeswr/reactive-fetch.git",
     "directory": "packages/shared"
+  },
+  "homepage": "https://github.com/jeswr/reactive-fetch/tree/main/packages/shared",
+  "bugs": "https://github.com/jeswr/reactive-fetch/issues",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "type": "module",
   "sideEffects": false,
@@ -48,7 +53,12 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "test/setup.ts",
+    "test/distSmoke.ts",
+    "test/helpers",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -73,7 +83,7 @@
     "jsdom": "^29.0.2"
   },
   "dependencies": {
-    "@jeswr/fetch-rdf": "github:jeswr/fetch-rdf#main",
+    "@jeswr/fetch-rdf": "^0.1.0",
     "@rdfjs/wrapper": "^0.32.0",
     "@solid/object": "^0.5.0",
     "n3": "^2.0.3"

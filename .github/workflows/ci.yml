@@ -189,5 +189,8 @@ jobs:
 
       - name: Run security-invariant tests
         # Covers the postMessage/eval/innerHTML/etc. source-grep assertions in
-        # packages/core/src/security.test.ts. Does not require a build.
-        run: pnpm --filter @jeswr/solid-reactive-fetch test -- src/security.test.ts
+        # packages/core/test/security.test.ts. Does not require a build.
+        # Pass the path positionally — `pnpm test -- <path>` adds the `--`
+        # separator which vitest ignores, causing it to fall back to running
+        # the full suite (which DOES need shared/dist).
+        run: pnpm --filter @jeswr/solid-reactive-fetch exec vitest run test/security.test.ts

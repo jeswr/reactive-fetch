@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import type { ReactiveFetch } from '@jeswr/solid-reactive-fetch';
-import { ReactiveFetchProvider, ReactiveFetchProviderMissing } from './context.js';
-import { useSolidFetch } from './useSolidFetch.js';
+import { ReactiveFetchProvider, ReactiveFetchProviderMissing } from '../src/context.js';
+import { useSolidFetch } from '../src/useSolidFetch.js';
 
 function Probe({ capture }: { capture: (fn: ReactiveFetch['fetch']) => void }) {
   capture(useSolidFetch());

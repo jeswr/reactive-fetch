@@ -1,26 +1,29 @@
 // =====================================================================
 // @jeswr/solid-reactive-fetch-sw — page-side API
 //
-// Sibling to `@jeswr/solid-reactive-fetch` (popup) and
-// `@jeswr/solid-reactive-fetch-prompt` (window.prompt). Where those
-// expose an `rf.fetch` wrapper, this package intercepts the unmodified
-// global `globalThis.fetch` via a Service Worker so apps can call
+// Sibling to `@jeswr/solid-reactive-fetch`. Where `rf.fetch` is an
+// explicit wrapper, this package intercepts the unmodified global
+// `globalThis.fetch` via a Service Worker so apps can call
 // `fetch('https://pod.example/private')` and get authentication
 // transparently — no per-call-site change.
 //
 // IMPORTANT mutual-exclusivity: do NOT use this in the same app as
-// `rf.fetch` from core/prompt for cross-origin requests. Both layers
-// will fight over the Session and produce duplicate auth attempts.
-// Pick one path per origin/URL pattern.
+// `rf.fetch` for cross-origin requests. Both layers will fight over the
+// Session and produce duplicate auth attempts. Pick one path per
+// origin/URL pattern.
 //
 // The login UI is NOT shipped here. The consumer composes one via
 // `loginDriver`, e.g.:
 //
-//   import { createReactiveFetchPrompt } from '@jeswr/solid-reactive-fetch-prompt';
-//   const rfp = createReactiveFetchPrompt({ clientId, callbackUrl });
+//   import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
+//   const rf = createReactiveFetch({
+//     clientId,
+//     callbackUrl,
+//     webIdDriver: () => window.prompt('Enter your WebID URL'),
+//   });
 //   await registerReactiveFetchSW({
 //     swUrl: '/reactive-fetch-sw.js',
-//     loginDriver: () => rfp.webId.then(() => {}),
+//     loginDriver: () => rf.webId.then(() => {}),
 //     clientId,
 //     callbackUrl,
 //   });

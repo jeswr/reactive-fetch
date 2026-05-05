@@ -9,7 +9,7 @@
 
 Reactive authenticated `fetch` for Solid applications. Authentication is triggered automatically — no explicit `login()` or `logout()` required.
 
-The package's public shape mirrors the global API installed by the in-development [`theodi/solid-browser-extension`](https://github.com/theodi/solid-browser-extension) (`dev_hkir` branch), so a future "unified wrapper" package can re-export from either source transparently. The extension is **not yet on npm** — the colleague is working through publish-auth issues. Until it ships, `@jeswr/solid-reactive-fetch` is the single source for both the reactive surface (`rf.webId`, `rf.fetch`) and the extension-shaped facade (`rf.solid`).
+The public shape mirrors the global API installed by the in-development [`theodi/solid-browser-extension`](https://github.com/theodi/solid-browser-extension) (`dev_hkir`), so a future "unified wrapper" package can re-export from either source transparently.
 
 **Live demo**: <https://jeswr.github.io/reactive-fetch/>
 
@@ -67,6 +67,46 @@ Two ways to read the WebID, on purpose:
 | `rf.webId` | `Promise<string>` | YES — opens popup if no session | "I want to render a signed-in UI; sign me in if needed" |
 | `rf.solid.webId` | `string \| null` | NO — pure read | "Render a snapshot; offer a Login button if `null`" |
 | `rf.solid.login(webId)` | `Promise<void>` | YES — opens popup | Imperative "Sign in" click handler |
+
+## WebID drivers — swap the entry-point UI
+
+By default, the popup ships its own WebID-input form. Pass a `webIdDriver` to swap that for a parent-side acquisition strategy. The contract is one type:
+
+```ts
+type WebIdDriver = (ctx: { allowLocalhost: boolean }) =>
+  string | null | Promise<string | null>;
+```
+
+Return a string to drive login with that WebID; return `null` to cancel (the caller of `rf.webId` / `rf.fetch` / `rf.solid.login` gets a `WebIdPromptCancelledError`). The driver runs in the parent before `window.open(...)`, so it must be synchronous-friendly to keep the user-gesture budget alive.
+
+### Example: `window.prompt` driver
+
+```ts
+const rf = createReactiveFetch({
+  clientId,
+  callbackUrl,
+  webIdDriver: () => window.prompt('Enter your WebID URL'),
+});
+```
+
+`window.prompt()` is synchronous and pauses JS, so the user-gesture budget survives across the call. Useful in kiosk apps, deeply restricted CSPs, accessibility-tooling stacks that prefer the OS-native dialog, and tests that want a single-line stub.
+
+### Custom drivers
+
+A styled modal, saved-WebID dropdown, or Electron IPC dialog is just a function:
+
+```ts
+const rf = createReactiveFetch({
+  clientId,
+  callbackUrl,
+  webIdDriver: async () => {
+    const webId = await openMyWebIdModal();
+    return webId ?? null;
+  },
+});
+```
+
+Returning a Promise breaks the user-gesture budget unless the consumer has set up delegated permissions, so prefer synchronous drivers when possible.
 
 ## Restore lifecycle
 
@@ -127,4 +167,10 @@ In Next.js / Remix / SvelteKit, construct the factory inside a client-only code 
 
 React hooks (`@jeswr/solid-reactive-fetch-react`) are SSR-safe in the sense that `useWebId` suspends during the server pass — so a server-rendered `<Suspense fallback={…}>` renders the fallback — but they still require the `createReactiveFetch()` call itself to happen on the client.
 
-Status: **under construction**. See the repo root for design notes.
+## See also
+
+- [`@jeswr/solid-reactive-fetch-react`](../react/) — React hooks and provider.
+- [`@jeswr/solid-reactive-fetch-sw`](../sw/) — service-worker variant.
+- [Design rationale](../../CLAUDE.md) and [contributing guide](../../CONTRIBUTING.md).
+
+Status: **under active development**. The public API may change before 1.0.

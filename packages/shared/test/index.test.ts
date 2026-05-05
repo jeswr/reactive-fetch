@@ -1,10 +1,10 @@
 // Export-surface smoke test for `@jeswr/solid-reactive-fetch-shared`.
 //
-// The shared package is consumed by both `@jeswr/solid-reactive-fetch` and
-// `@jeswr/solid-reactive-fetch-prompt`. Renames and accidental drops are
-// far cheaper to catch here than chasing them through downstream test
-// failures, so this file just imports the documented surface and asserts
-// each export is truthy / the right shape.
+// The shared package is consumed by `@jeswr/solid-reactive-fetch` and
+// the service-worker variant. Renames and accidental drops are far
+// cheaper to catch here than chasing them through downstream test
+// failures, so this file just imports the documented surface and
+// asserts each export is truthy / the right shape.
 
 import { describe, expect, test } from 'vitest';
 import {
@@ -31,7 +31,7 @@ import {
   LOGIN_COMPLETE_MESSAGE_TYPE,
   openLoginPopup,
   __resetPopupStateForTests,
-} from './index.js';
+} from '../src/index.js';
 import {
   WebIDProfileAgent,
   fetchWebIDProfile,
@@ -54,7 +54,7 @@ import {
   readWebIdFromQueryStrict,
   runOidcRedirectIfPresent,
   validateWebIdSyncStrict,
-} from './callback/index.js';
+} from '../src/callback/index.js';
 
 describe('shared: export-surface smoke test', () => {
   test('error classes are constructible and extend ReactiveFetchError', () => {

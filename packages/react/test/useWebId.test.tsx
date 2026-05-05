@@ -2,8 +2,8 @@ import { StrictMode, Suspense } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
 import type { ReactiveFetch } from '@jeswr/solid-reactive-fetch';
-import { ReactiveFetchProvider, ReactiveFetchProviderMissing } from './context.js';
-import { useWebId } from './useWebId.js';
+import { ReactiveFetchProvider, ReactiveFetchProviderMissing } from '../src/context.js';
+import { useWebId } from '../src/useWebId.js';
 
 type PendingControls = {
   resolve: (value: string) => void;

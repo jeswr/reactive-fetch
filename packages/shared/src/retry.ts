@@ -1,11 +1,10 @@
 // Shared "build a Request safe to fetch twice" helper.
 //
-// Both `@jeswr/solid-reactive-fetch` (popup) and
-// `@jeswr/solid-reactive-fetch-prompt` (window.prompt) share the same
-// reactive-401-retry contract: try the request once unauthenticated, and on
-// 401 retry it through `session.authFetch`. The retry has to materialise an
-// independent Request because `Request.clone()` is single-use for streaming
-// bodies, and `globalThis.fetch(request, init)` must apply `init`'s overrides
+// `@jeswr/solid-reactive-fetch`'s reactive-401-retry contract: try the
+// request once unauthenticated, and on 401 retry it through
+// `session.authFetch`. The retry has to materialise an independent
+// Request because `Request.clone()` is single-use for streaming bodies,
+// and `globalThis.fetch(request, init)` must apply `init`'s overrides
 // onto the request's defaults per the Fetch spec.
 //
 // Centralised here so a fix to one of the three input shapes (Request /

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ReactiveFetchProvider, ReactiveFetchProviderMissing, useReactiveFetch } from './context.js';
+import { ReactiveFetchProvider, ReactiveFetchProviderMissing, useReactiveFetch } from '../src/context.js';
 import type { ReactiveFetch } from '@jeswr/solid-reactive-fetch';
 
 function makeRf(): ReactiveFetch {

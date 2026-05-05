@@ -9,9 +9,9 @@
 //   1. installs a fake `self` (and `Client`) on `globalThis`,
 //   2. resets vitest's module cache so the import re-runs the
 //      module-top-level code under our stubs,
-//   3. dynamically imports `./worker.js` (which we never import at the
-//      top of this file — the import has to happen AFTER the stub is in
-//      place),
+//   3. dynamically imports `../src/worker.js` (which we never import at
+//      the top of this file — the import has to happen AFTER the stub
+//      is in place),
 //   4. fires events through the captured handler list.
 //
 // We rely on `fileParallelism: false` (vitest config) so the
@@ -25,7 +25,7 @@ import {
   makeFakeFetchEvent,
   makeFakeMessageEvent,
   type FakeWorkerScope,
-} from '../test/helpers/mockWorkerScope.js';
+} from './helpers/mockWorkerScope.js';
 import {
   LOGIN_REQUIRED_MESSAGE_TYPE,
   LOGIN_COMPLETE_MESSAGE_TYPE,
@@ -45,7 +45,7 @@ async function loadWorker(): Promise<void> {
   // (the `self.addEventListener` calls) re-run against our fresh stub.
   vi.resetModules();
   // Each test installs its scope BEFORE this dynamic import.
-  await import('./worker.js');
+  await import('../src/worker.js');
 }
 
 /**

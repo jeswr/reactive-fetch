@@ -12,12 +12,12 @@ import {
   REGISTER_HANDSHAKE_MESSAGE_TYPE,
   REGISTER_ACK_MESSAGE_TYPE,
   registerReactiveFetchSW,
-} from './index.js';
+} from '../src/index.js';
 import {
   createFakeServiceWorker,
   installFakeServiceWorker,
   type FakeServiceWorkerContainer,
-} from '../test/helpers/mockServiceWorker.js';
+} from './helpers/mockServiceWorker.js';
 
 let container: FakeServiceWorkerContainer;
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { LoginFailedError } from './errors.js';
+import { LoginFailedError } from '../src/errors.js';
 
 /**
  * FakeSession stands in for `@uvdsl/solid-oidc-client-browser`'s Session.
@@ -45,11 +45,11 @@ vi.mock('@uvdsl/solid-oidc-client-browser', () => ({
   Session: FakeSession,
 }));
 
-let sessionModule: typeof import('./session.js');
+let sessionModule: typeof import('../src/session.js');
 
 beforeEach(async () => {
   FakeSession.reset();
-  sessionModule = await import('./session.js');
+  sessionModule = await import('../src/session.js');
   sessionModule.__resetSessionCacheForTests();
 });
 
@@ -221,7 +221,7 @@ describe('SSR environment guard', () => {
 
 describe('ensureRestored: silent-logout detection', () => {
   test('throws SessionRestoreFailedError when restore() resolves but isActive stays false', async () => {
-    const { SessionRestoreFailedError } = await import('./errors.js');
+    const { SessionRestoreFailedError } = await import('../src/errors.js');
     const { session } = sessionModule.createSessionBootstrap('https://app.example/id');
     const fake = session as unknown as FakeSession;
     // Simulate uvdsl's silent-logout path: restore() resolves (no throw) but

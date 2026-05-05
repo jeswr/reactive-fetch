@@ -53,18 +53,19 @@ await registerReactiveFetchSW({ swUrl: workerUrl, /* … */ });
 
 ```ts
 import { registerReactiveFetchSW } from '@jeswr/solid-reactive-fetch-sw';
-import { createReactiveFetchPrompt } from '@jeswr/solid-reactive-fetch-prompt';
+import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
 
-const rfp = createReactiveFetchPrompt({
+const rf = createReactiveFetch({
   clientId: 'https://myapp.example/solid-client.jsonld',
   callbackUrl: 'https://myapp.example/reactive-fetch-callback',
+  webIdDriver: () => window.prompt('Enter your WebID URL'),
 });
 
 await registerReactiveFetchSW({
   swUrl: '/reactive-fetch-sw.js',
   clientId: 'https://myapp.example/solid-client.jsonld',
   callbackUrl: 'https://myapp.example/reactive-fetch-callback',
-  loginDriver: () => rfp.webId.then(() => undefined),
+  loginDriver: () => rf.webId.then(() => undefined),
   // Required: explicit allowlist of origins the SW is allowed to apply
   // Solid auth to. URLs outside this list (including OIDC discovery /
   // token endpoints from the IDP, and unrelated third-party APIs) fall

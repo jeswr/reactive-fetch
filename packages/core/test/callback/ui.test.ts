@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { renderCachedWebIdsList, renderPromptUi } from './ui.js';
+import { renderCachedWebIdsList, renderPromptUi } from '../../src/callback/ui.js';
 import {
   IssuerPickerCancelled,
   renderIssuerPicker,

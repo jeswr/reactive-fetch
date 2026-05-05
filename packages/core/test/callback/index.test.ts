@@ -23,7 +23,7 @@ vi.mock('@uvdsl/solid-oidc-client-browser', () => ({
   Session: FakeSession,
 }));
 
-let mountCallback: typeof import('./index.js').mountCallback;
+let mountCallback: typeof import('../../src/callback/index.js').mountCallback;
 let __resetWebIdCacheForTests: typeof import('@jeswr/solid-reactive-fetch-shared/callback').__resetWebIdCacheForTests;
 let rememberWebId: typeof import('@jeswr/solid-reactive-fetch-shared/callback').rememberWebId;
 
@@ -47,7 +47,7 @@ beforeEach(async () => {
   FakeSession.resetLogs();
 
   // Dynamic import so the vi.mock above is in effect.
-  ({ mountCallback } = await import('./index.js'));
+  ({ mountCallback } = await import('../../src/callback/index.js'));
   ({ __resetWebIdCacheForTests, rememberWebId } = await import('@jeswr/solid-reactive-fetch-shared/callback'));
   __resetWebIdCacheForTests();
 
