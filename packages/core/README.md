@@ -70,7 +70,7 @@ Two ways to read the WebID, on purpose:
 
 ## WebID drivers — swap the entry-point UI
 
-By default, the popup ships its own WebID-input form. Pass a `driver` to swap that for a parent-side acquisition strategy. The contract is one type:
+By default, the popup ships its own WebID-input form. Pass a `webIdDriver` to swap that for a parent-side acquisition strategy. The contract is one type:
 
 ```ts
 type WebIdDriver = (ctx: { allowLocalhost: boolean }) =>
@@ -85,7 +85,7 @@ Return a string to drive login with that WebID; return `null` to cancel (the cal
 const rf = createReactiveFetch({
   clientId,
   callbackUrl,
-  driver: () => window.prompt('Enter your WebID URL'),
+  webIdDriver: () => window.prompt('Enter your WebID URL'),
 });
 ```
 
@@ -99,7 +99,7 @@ A styled modal, saved-WebID dropdown, or Electron IPC dialog is just a function:
 const rf = createReactiveFetch({
   clientId,
   callbackUrl,
-  driver: async () => {
+  webIdDriver: async () => {
     const webId = await openMyWebIdModal();
     return webId ?? null;
   },

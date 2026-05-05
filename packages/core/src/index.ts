@@ -82,7 +82,7 @@ export interface ReactiveFetchOptions {
    * When omitted, the popup renders its built-in WebID-input form
    * (zero-config default).
    */
-  driver?: WebIdDriver;
+  webIdDriver?: WebIdDriver;
   /**
    * Invoked if the construction-time `ensureRestored` call rejects (malformed
    * refresh token, token endpoint unreachable, corrupt IndexedDB, etc.). The
@@ -167,7 +167,7 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
   const {
     clientId: initialClientId,
     callbackUrl,
-    driver,
+    webIdDriver,
     onRestoreError,
     allowLocalhost = false,
   } = options;
@@ -269,8 +269,8 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     // override, run the driver synchronously to acquire a WebID, then
     // append it as `?webId=` so the callback skips its built-in form.
     let popupTargetWebId: string | undefined = validatedOverride;
-    if (popupTargetWebId === undefined && driver !== undefined) {
-      const driverResult = driver({ allowLocalhost });
+    if (popupTargetWebId === undefined && webIdDriver !== undefined) {
+      const driverResult = webIdDriver({ allowLocalhost });
       if (typeof driverResult === 'string') {
         try {
           popupTargetWebId = validateWebIdSyncStrict(driverResult, { allowLocalhost });

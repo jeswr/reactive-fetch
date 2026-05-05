@@ -58,7 +58,7 @@ import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
 const rf = createReactiveFetch({
   clientId: 'https://myapp.example/solid-client.jsonld',
   callbackUrl: 'https://myapp.example/reactive-fetch-callback',
-  driver: () => window.prompt('Enter your WebID URL'),
+  webIdDriver: () => window.prompt('Enter your WebID URL'),
 });
 
 await registerReactiveFetchSW({

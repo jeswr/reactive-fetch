@@ -19,7 +19,7 @@
 //   const rf = createReactiveFetch({
 //     clientId,
 //     callbackUrl,
-//     driver: () => window.prompt('Enter your WebID URL'),
+//     webIdDriver: () => window.prompt('Enter your WebID URL'),
 //   });
 //   await registerReactiveFetchSW({
 //     swUrl: '/reactive-fetch-sw.js',
