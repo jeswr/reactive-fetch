@@ -54,6 +54,9 @@
   },
   "files": [
     "dist",
+    "test/setup.ts",
+    "test/distSmoke.ts",
+    "test/helpers",
     "README.md",
     "CHANGELOG.md"
   ],

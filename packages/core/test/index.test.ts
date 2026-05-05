@@ -21,10 +21,14 @@ import {
  */
 const { FakeSession } = vi.hoisted(() => {
   class FakeSession {
+    // The first FakeSession constructed in a test. `rebuildSessionBootstrap`
+    // creates additional instances; tests configure `restoreImpl` /
+    // `authFetchImpl` on this one (captured into arrow-function closures
+    // that mutate `fake.isActive` etc.). Subsequent instances proxy state
+    // through the original via `inheritFromFirst()`/`syncFromFirst()`.
+    static firstInstance: FakeSession | undefined;
     static lastInstance: FakeSession | undefined;
-    // Tests can set this to mutate each new instance before anyone holds a
-    // reference — useful when the test needs to intercept the
-    // construction-time `restore()` call before its first microtask drains.
+    // Tests can set this to mutate each new instance on construction.
     static onConstruct: ((instance: FakeSession) => void) | undefined;
     isActive = false;
     webId: string | undefined;
@@ -35,18 +39,50 @@ const { FakeSession } = vi.hoisted(() => {
       new Response('ok');
 
     constructor(_details: { client_id: string }) {
+      const prev = FakeSession.lastInstance;
+      if (prev) {
+        // Inherit configured behavior from the previous instance so a
+        // `rebuildSessionBootstrap`-driven instance honours the same
+        // `restoreImpl` / `authFetchImpl` the test set up on the original.
+        this.restoreImpl = prev.restoreImpl;
+        this.authFetchImpl = prev.authFetchImpl;
+      }
+      if (!FakeSession.firstInstance) FakeSession.firstInstance = this;
       FakeSession.lastInstance = this;
       FakeSession.onConstruct?.(this);
     }
 
     async restore(): Promise<void> {
       this.restoreCalls += 1;
-      return this.restoreImpl();
+      await this.restoreImpl();
+      // Tests' restoreImpl is typically `() => { fake.isActive = true; ... }`
+      // closing over the original `fake` (firstInstance). After running it,
+      // pull the resulting state into this rebuilt instance so production
+      // code observes `session.isActive === true`.
+      const first = FakeSession.firstInstance;
+      if (first && first !== this) {
+        this.isActive = first.isActive;
+        this.webId = first.webId;
+      }
     }
 
     authFetch(input: unknown, init?: RequestInit): Promise<Response> {
-      this.authFetchCalls.push({ input, init });
+      // Push the call into firstInstance's array so test assertions on
+      // `fake.authFetchCalls` (where `fake` was captured pre-rebuild)
+      // observe calls dispatched on rebuilt instances too.
+      const sink = FakeSession.firstInstance ?? this;
+      sink.authFetchCalls.push({ input, init });
       return this.authFetchImpl(input, init);
+    }
+
+    async logout(): Promise<void> {
+      this.isActive = false;
+      this.webId = undefined;
+      const first = FakeSession.firstInstance;
+      if (first && first !== this) {
+        first.isActive = false;
+        first.webId = undefined;
+      }
     }
   }
   return { FakeSession };
@@ -89,6 +125,7 @@ beforeEach(async () => {
   __resetSessionCacheForTests();
   __resetPopupStateForTests();
   FakeSession.lastInstance = undefined;
+  FakeSession.firstInstance = undefined;
   stub = installMockWindowOpen();
   ({ createReactiveFetch } = await import('../src/index.js'));
 });

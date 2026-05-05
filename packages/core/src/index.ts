@@ -38,6 +38,7 @@ import {
   LoginFailedError,
   openLoginPopup,
   prepareRetryable,
+  rebuildSessionBootstrap,
   SessionRestoreFailedError,
   WebIdPromptCancelledError,
   type WebIdDriver,
@@ -172,7 +173,14 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     allowLocalhost = false,
   } = options;
 
-  const { session } = createSessionBootstrap(initialClientId);
+  // `session` is reassignable: a successful popup login writes a fresh
+  // DPoP keypair + refresh token to IndexedDB, and the construction-time
+  // `Session` instance can hold internal state that prevents `restore()`
+  // from picking the new entry up cleanly. After the popup closes we
+  // rebuild via `rebuildSessionBootstrap` so subsequent reads/fetches
+  // see the freshly-restored session. Closures over `session` resolve
+  // the binding on each access, so the swap is observed immediately.
+  let { session } = createSessionBootstrap(initialClientId);
 
   // Mutable client-id slot for the extension-shaped facade.
   let currentClientId: string | undefined = initialClientId;
@@ -206,7 +214,13 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
   // launched while a `solid.login(A)` is pending doesn't silently join
   // A's promise. `null` = no specific target (a reactive `webId` read or
   // a 401 retry — any successful login resolves intent).
-  let loginPromiseTarget: string | null = null;
+  // `DRIVER_PENDING_TARGET` = an async driver hasn't yet resolved its
+  // WebID, so we don't yet know the target. Reactive reads can still
+  // join in that state, but explicit `solid.login(X)` must reject —
+  // joining would risk resolving with the wrong user once the driver
+  // produces a different WebID.
+  const DRIVER_PENDING_TARGET = Symbol('webIdDriver pending');
+  let loginPromiseTarget: string | typeof DRIVER_PENDING_TARGET | null = null;
 
   const ensureLoggedIn = (overrideWebId?: string): Promise<string> => {
     // Validate `overrideWebId` BEFORE any short-circuit so an explicit
@@ -233,6 +247,16 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
       // require driving a second popup, which can't be done outside the
       // gesture chain that triggered it.
       if (validatedOverride === undefined) return loginPromise;
+      if (loginPromiseTarget === DRIVER_PENDING_TARGET) {
+        // Async driver hasn't resolved yet; we don't know if its target
+        // will match. Reject to be safe.
+        return Promise.reject(
+          new LoginFailedError(
+            `An asynchronous WebID driver is still resolving; ` +
+              `wait for it to settle before logging in as ${validatedOverride}.`,
+          ),
+        );
+      }
       if (loginPromiseTarget === null || loginPromiseTarget === validatedOverride) {
         return loginPromise;
       }
@@ -288,11 +312,19 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
         // user-gesture budget unless the consumer has already set up
         // delegated permissions; we accept this trade-off because some
         // drivers (custom modals) can't be synchronous.
+        //
+        // The target isn't known until the driver resolves. Pin it to
+        // `DRIVER_PENDING_TARGET` so concurrent `solid.login(X)` calls
+        // reject (rather than silently joining a flow that may resolve
+        // with a different user). Once the driver's WebID is in hand,
+        // upgrade the target to the validated string.
         const popupUrlPromise = driverResult.then((webId) => {
           if (webId === null) throw new WebIdPromptCancelledError();
-          return appendWebIdParam(callbackUrl, validateWebIdSyncStrict(webId, { allowLocalhost }));
+          const validated = validateWebIdSyncStrict(webId, { allowLocalhost });
+          loginPromiseTarget = validated;
+          return appendWebIdParam(callbackUrl, validated);
         });
-        return runLoginFlow(popupUrlPromise, /* target */ null);
+        return runLoginFlow(popupUrlPromise, DRIVER_PENDING_TARGET);
       }
     }
 
@@ -304,7 +336,7 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
 
   const runLoginFlow = (
     popupUrlOrPromise: string | Promise<string>,
-    target: string | null,
+    target: string | typeof DRIVER_PENDING_TARGET | null,
   ): Promise<string> => {
     const popupPromise =
       typeof popupUrlOrPromise === 'string'
@@ -314,9 +346,12 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     const pending: Promise<string> = (async () => {
       try {
         await popupPromise;
-        // Force a fresh restore: the popup just authenticated the user
-        // and wrote state into shared IndexedDB. A cached restore from
-        // page-load may be stale, so skip the dedup WeakMap.
+        // The popup wrote a fresh DPoP keypair + refresh token to IDB.
+        // Rebuild the Session so it doesn't carry stale internal restore
+        // state from the construction-time restore — without this,
+        // `ensureRestored` can return early and miss the popup-written
+        // entry, surfacing as `SessionRestoreFailedError` here.
+        session = rebuildSessionBootstrap(currentClientId ?? initialClientId).session;
         await ensureRestored(session, true);
         if (!session.isActive || !session.webId) {
           throw new SessionRestoreFailedError();
