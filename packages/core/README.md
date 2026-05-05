@@ -70,27 +70,43 @@ Two ways to read the WebID, on purpose:
 
 ## WebID drivers — swap the entry-point UI
 
-By default, the popup ships its own WebID-input form. Pass a `driver` to swap that for a parent-side acquisition strategy (`window.prompt`, a custom modal, a saved-WebID dropdown, …):
-
-```ts
-import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
-import { promptDriver } from '@jeswr/solid-reactive-fetch-driver-prompt';
-
-const rf = createReactiveFetch({
-  clientId,
-  callbackUrl,
-  driver: promptDriver(), // uses window.prompt() instead of the popup form
-});
-```
-
-The driver runs in the parent before `window.open(...)`, so it must be synchronous-friendly to keep the user-gesture budget alive. Custom drivers are a one-function contract:
+By default, the popup ships its own WebID-input form. Pass a `driver` to swap that for a parent-side acquisition strategy. The contract is one type:
 
 ```ts
 type WebIdDriver = (ctx: { allowLocalhost: boolean }) =>
   string | null | Promise<string | null>;
 ```
 
-Return `null` to cancel the login flow (the caller of `rf.webId` / `rf.fetch` / `rf.solid.login` then gets a `WebIdPromptCancelledError`).
+Return a string to drive login with that WebID; return `null` to cancel (the caller of `rf.webId` / `rf.fetch` / `rf.solid.login` gets a `WebIdPromptCancelledError`). The driver runs in the parent before `window.open(...)`, so it must be synchronous-friendly to keep the user-gesture budget alive.
+
+### Example: `window.prompt` driver
+
+```ts
+const rf = createReactiveFetch({
+  clientId,
+  callbackUrl,
+  driver: () => window.prompt('Enter your WebID URL'),
+});
+```
+
+`window.prompt()` is synchronous and pauses JS, so the user-gesture budget survives across the call. Useful in kiosk apps, deeply restricted CSPs, accessibility-tooling stacks that prefer the OS-native dialog, and tests that want a single-line stub.
+
+### Custom drivers
+
+A styled modal, saved-WebID dropdown, or Electron IPC dialog is just a function:
+
+```ts
+const rf = createReactiveFetch({
+  clientId,
+  callbackUrl,
+  driver: async () => {
+    const webId = await openMyWebIdModal();
+    return webId ?? null;
+  },
+});
+```
+
+Returning a Promise breaks the user-gesture budget unless the consumer has set up delegated permissions, so prefer synchronous drivers when possible.
 
 ## Restore lifecycle
 
@@ -153,7 +169,6 @@ React hooks (`@jeswr/solid-reactive-fetch-react`) are SSR-safe in the sense that
 
 ## See also
 
-- [`@jeswr/solid-reactive-fetch-driver-prompt`](../driver-prompt/) — `window.prompt`-based WebID driver.
 - [`@jeswr/solid-reactive-fetch-react`](../react/) — React hooks and provider.
 - [`@jeswr/solid-reactive-fetch-sw`](../sw/) — service-worker variant.
 - [Design rationale](../../CLAUDE.md) and [contributing guide](../../CONTRIBUTING.md).

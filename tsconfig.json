@@ -4,7 +4,6 @@
   "references": [
     { "path": "./packages/shared" },
     { "path": "./packages/core" },
-    { "path": "./packages/driver-prompt" },
     { "path": "./packages/react" },
     { "path": "./packages/sw" }
   ]

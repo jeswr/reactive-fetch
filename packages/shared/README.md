@@ -1,8 +1,6 @@
 # @jeswr/solid-reactive-fetch-shared
 
-[![npm version](https://img.shields.io/npm/v/@jeswr/solid-reactive-fetch-shared)](https://www.npmjs.com/package/@jeswr/solid-reactive-fetch-shared)
-
-Shared primitives consumed by [`@jeswr/solid-reactive-fetch`](../core/), its WebID drivers (e.g. [`@jeswr/solid-reactive-fetch-driver-prompt`](../driver-prompt/)), and [`@jeswr/solid-reactive-fetch-sw`](../sw/).
+Shared primitives consumed by [`@jeswr/solid-reactive-fetch`](../core/) and [`@jeswr/solid-reactive-fetch-sw`](../sw/).
 
 **Most applications don't import this package directly** — the core package re-exports the public types and errors. Install this only if you're authoring a custom WebID driver, a custom callback page, or another sibling integration that needs the OIDC primitives.
 

@@ -1,11 +1,10 @@
 // Export-surface smoke test for `@jeswr/solid-reactive-fetch-shared`.
 //
-// The shared package is consumed by `@jeswr/solid-reactive-fetch`, its
-// drivers (e.g. `-driver-prompt`), and the service-worker variant.
-// Renames and accidental drops are far cheaper to catch here than
-// chasing them through downstream test failures, so this file just
-// imports the documented surface and asserts each export is truthy /
-// the right shape.
+// The shared package is consumed by `@jeswr/solid-reactive-fetch` and
+// the service-worker variant. Renames and accidental drops are far
+// cheaper to catch here than chasing them through downstream test
+// failures, so this file just imports the documented surface and
+// asserts each export is truthy / the right shape.
 
 import { describe, expect, test } from 'vitest';
 import {

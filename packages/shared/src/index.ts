@@ -1,8 +1,7 @@
 // =====================================================================
 // @jeswr/solid-reactive-fetch-shared
 //
-// Primitives consumed by `@jeswr/solid-reactive-fetch`, its WebID
-// drivers (e.g. `@jeswr/solid-reactive-fetch-driver-prompt`), and the
+// Primitives consumed by `@jeswr/solid-reactive-fetch` and the
 // service-worker variant: session bootstrap, popup orchestration, error
 // hierarchy, WebID profile resolution, the issuer-picker UI, the OIDC-
 // redirect handler, and the `WebIdDriver` contract.

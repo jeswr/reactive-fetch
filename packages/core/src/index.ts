@@ -38,7 +38,6 @@ import {
   LoginFailedError,
   openLoginPopup,
   prepareRetryable,
-  rebuildSessionBootstrap,
   SessionRestoreFailedError,
   WebIdPromptCancelledError,
   type WebIdDriver,
@@ -76,9 +75,9 @@ export interface ReactiveFetchOptions {
    * Optional WebID-acquisition driver. When provided, the driver runs in
    * the parent (synchronously enough to keep the user-gesture budget
    * alive) and its result is forwarded to the popup as `?webId=`, so the
-   * callback page skips its built-in form. Pass
-   * `@jeswr/solid-reactive-fetch-driver-prompt` for `window.prompt`-based
-   * entry, or write your own (a modal, a saved-WebID dropdown, …).
+   * callback page skips its built-in form. Pass `() => window.prompt(...)`
+   * for an OS-native dialog, or write your own (a modal, a saved-WebID
+   * dropdown, …).
    *
    * When omitted, the popup renders its built-in WebID-input form
    * (zero-config default).
@@ -173,13 +172,7 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     allowLocalhost = false,
   } = options;
 
-  // `session` is reassignable: a successful popup login writes a new DPoP
-  // keypair + refresh token to IndexedDB, and the construction-time
-  // `Session` instance can hold internal state that prevents `restore()`
-  // from picking the new entry up cleanly. After the popup closes we
-  // rebuild the instance so subsequent reads/fetches see the fresh
-  // session. Closures over `session` resolve the binding on each access.
-  let { session } = createSessionBootstrap(initialClientId);
+  const { session } = createSessionBootstrap(initialClientId);
 
   // Mutable client-id slot for the extension-shaped facade.
   let currentClientId: string | undefined = initialClientId;
@@ -321,12 +314,9 @@ export function createReactiveFetch(options: ReactiveFetchOptions): ReactiveFetc
     const pending: Promise<string> = (async () => {
       try {
         await popupPromise;
-        // The popup wrote a fresh DPoP keypair + refresh token to IDB.
-        // Rebuild the Session so it doesn't carry stale internal restore
-        // state — without this, `ensureRestored` can return early and
-        // miss the popup-written entry.
-        const fresh = rebuildSessionBootstrap(currentClientId ?? initialClientId).session;
-        session = fresh;
+        // Force a fresh restore: the popup just authenticated the user
+        // and wrote state into shared IndexedDB. A cached restore from
+        // page-load may be stale, so skip the dedup WeakMap.
         await ensureRestored(session, true);
         if (!session.isActive || !session.webId) {
           throw new SessionRestoreFailedError();

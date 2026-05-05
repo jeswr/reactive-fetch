@@ -10,7 +10,6 @@ reactive-fetch/
 │   ├── core/             # @jeswr/solid-reactive-fetch
 │   ├── react/            # @jeswr/solid-reactive-fetch-react
 │   ├── sw/               # @jeswr/solid-reactive-fetch-sw
-│   ├── driver-prompt/    # @jeswr/solid-reactive-fetch-driver-prompt
 │   └── shared/           # @jeswr/solid-reactive-fetch-shared (primitives)
 ├── examples/             # vanilla-ts, react demos, callback page, client-id-document
 ├── e2e/                  # Playwright end-to-end tests
@@ -65,7 +64,7 @@ The release workflow lives at [`.github/workflows/release.yml`](.github/workflow
    pnpm --filter <package-name> publish
    ```
 
-2. On npmjs.com, go to **https://www.npmjs.com/package/\<package-name\>/access** and add a Trusted Publisher pointing at:
+2. On npmjs.com, go to `https://www.npmjs.com/package/<package-name>/access` and add a Trusted Publisher pointing at:
    - Repository: `jeswr/reactive-fetch`
    - Workflow: `release.yml`
 

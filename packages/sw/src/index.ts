@@ -16,8 +16,11 @@
 // `loginDriver`, e.g.:
 //
 //   import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
-//   import { promptDriver } from '@jeswr/solid-reactive-fetch-driver-prompt';
-//   const rf = createReactiveFetch({ clientId, callbackUrl, driver: promptDriver() });
+//   const rf = createReactiveFetch({
+//     clientId,
+//     callbackUrl,
+//     driver: () => window.prompt('Enter your WebID URL'),
+//   });
 //   await registerReactiveFetchSW({
 //     swUrl: '/reactive-fetch-sw.js',
 //     loginDriver: () => rf.webId.then(() => {}),

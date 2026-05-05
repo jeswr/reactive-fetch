@@ -50,5 +50,4 @@ SSR-safe: the hook suspends on the server pass so a server-rendered `<Suspense f
 
 ## See also
 
-- [`@jeswr/solid-reactive-fetch`](../core/) — the underlying library this package wraps.
-- [`@jeswr/solid-reactive-fetch-driver-prompt`](../driver-prompt/) — swap the popup form for `window.prompt`.
+- [`@jeswr/solid-reactive-fetch`](../core/) — the underlying library this package wraps. See its "WebID drivers" section to swap the popup form for `window.prompt` or a custom modal.

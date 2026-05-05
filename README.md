@@ -29,7 +29,6 @@ const res = await rf.fetch('https://pod.example/private-resource');
 | [`@jeswr/solid-reactive-fetch`](packages/core/) | The core framework-agnostic library — popup-based login, reactive `fetch`, extension-shaped `solid` facade. **Start here.** |
 | [`@jeswr/solid-reactive-fetch-react`](packages/react/) | React hooks (`useWebId`, `useSolidFetch`) and `<ReactiveFetchProvider>`. |
 | [`@jeswr/solid-reactive-fetch-sw`](packages/sw/) | Service-worker variant — intercepts the unmodified global `fetch` so apps don't need an explicit `rf.fetch` wrapper. |
-| [`@jeswr/solid-reactive-fetch-driver-prompt`](packages/driver-prompt/) | Optional driver: collect the WebID via `window.prompt()` instead of the popup's built-in form. |
 | [`@jeswr/solid-reactive-fetch-shared`](packages/shared/) | Shared primitives (errors, session bootstrap, popup orchestration, the `WebIdDriver` contract). Most apps don't import this directly. |
 
 ## Demo video

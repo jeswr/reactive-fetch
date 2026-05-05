@@ -22,7 +22,7 @@ Mirrors `window.solid` from the in-development [`theodi/solid-browser-extension`
 When `rf.fetch` gets a 401 or `rf.webId` is read with no active session:
 
 1. **Open a same-origin popup** — synchronously from the user gesture.
-2. **Acquire a WebID** — either via the popup's built-in WebID-input form (the zero-config default), or by running a `WebIdDriver` in the parent before the popup opens (e.g. `@jeswr/solid-reactive-fetch-driver-prompt`, which wraps `window.prompt`). When a driver supplies a WebID, the parent appends `?webId=` to the popup URL and the callback skips the form.
+2. **Acquire a WebID** — either via the popup's built-in WebID-input form (the zero-config default), or by running a `WebIdDriver` in the parent before the popup opens (e.g. `() => window.prompt('Enter your WebID')` for an OS-native dialog, or a custom modal). When a driver supplies a WebID, the parent appends `?webId=` to the popup URL and the callback skips the form.
 3. **Discover the IDP** — popup fetches the WebID Profile Document, reads `solid:oidcIssuer`.
 4. **Run the OIDC dance** — popup calls `Session.login(issuer, redirectUri)` via `@uvdsl/solid-oidc-client-browser`, redirects to the IDP, the IDP redirects back, popup runs `handleRedirectFromLogin()`.
 5. **Notify the parent** — popup `postMessage`s a completion signal to `window.opener` (with explicit `targetOrigin`; tokens never cross the channel), then calls `window.close()`.
@@ -55,7 +55,7 @@ Two cases:
 1. **No driver passed** to `createReactiveFetch` → popup opens with no `?webId=` → callback page renders its built-in WebID-input form (zero-config default).
 2. **Driver passed** → driver runs in the parent → popup opens with `?webId=<webId>` → callback skips the form and goes straight to OIDC discovery.
 
-`@jeswr/solid-reactive-fetch-driver-prompt` is the only published driver today (wraps `window.prompt`). Custom drivers are a one-function contract — apps wanting a styled modal, a saved-WebID dropdown, or an Electron IPC dialog write their own without depending on a "driver" package.
+No driver packages are shipped — drivers are a one-function contract written inline by the consumer. The two-line `() => window.prompt('Enter your WebID')` is enough for the OS-native-dialog case; styled modals, saved-WebID dropdowns, and Electron IPC dialogs are equally just functions.
 
 ## Underlying library
 

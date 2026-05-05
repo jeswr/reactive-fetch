@@ -54,12 +54,11 @@ await registerReactiveFetchSW({ swUrl: workerUrl, /* … */ });
 ```ts
 import { registerReactiveFetchSW } from '@jeswr/solid-reactive-fetch-sw';
 import { createReactiveFetch } from '@jeswr/solid-reactive-fetch';
-import { promptDriver } from '@jeswr/solid-reactive-fetch-driver-prompt';
 
 const rf = createReactiveFetch({
   clientId: 'https://myapp.example/solid-client.jsonld',
   callbackUrl: 'https://myapp.example/reactive-fetch-callback',
-  driver: promptDriver(),
+  driver: () => window.prompt('Enter your WebID URL'),
 });
 
 await registerReactiveFetchSW({
