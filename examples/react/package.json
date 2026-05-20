@@ -14,11 +14,11 @@
     "@jeswr/solid-reactive-fetch": "workspace:*",
     "@jeswr/solid-reactive-fetch-react": "workspace:*",
     "@uvdsl/solid-oidc-client-browser": "^0.2.2",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
     "typescript": "^5.9.3",
